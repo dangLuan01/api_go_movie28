@@ -5,11 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 )
-func GetMovie(respone http.ResponseWriter, request *http.Request) {
-	movie := models.GetAllMovie()
-	responeWithJson(respone, http.StatusOK, movie)
-	
-}
 func responeWithJson(respone http.ResponseWriter, statusCode int, data interface{}) {
 	result, err := json.Marshal(data)
 	if err != nil {
@@ -20,6 +15,11 @@ func responeWithJson(respone http.ResponseWriter, statusCode int, data interface
 	respone.WriteHeader(statusCode)
 	respone.Write(result)
 }
+func GetMovie(respone http.ResponseWriter, request *http.Request) {
+	movie := models.GetAllMovie()
+	responeWithJson(respone, http.StatusOK, movie)
+}
+
 func GetCategory(respone http.ResponseWriter, request *http.Request)  {
 	category := models.GetAllCategory()
 	responeWithJson(respone, http.StatusOK, category)
