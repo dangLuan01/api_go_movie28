@@ -10,10 +10,10 @@ func GetAllCategory() []entities.Category  {
 	var categories []entities.Category
 	err := config.DB.
 		From("categories").
-		Order(goqu.I("position").Asc()). // optional: sắp xếp theo ID
+		Order(goqu.I("position").Asc()).
 		ScanStructs(&categories)
 	if err != nil {
-		fmt.Println("Lỗi khi lấy danh sách thể loại:", err)
+		fmt.Println("Err:", err)
 		return nil
 	}
 

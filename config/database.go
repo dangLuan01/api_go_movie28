@@ -28,10 +28,9 @@ func InitDB() {
 	)
     sqlDB, err := sql.Open("mysql", dsn)
     if err != nil {
-		fmt.Println("Lỗi khi kết nối đến cơ sở dữ liệu. Lỗi:", err)
+		fmt.Println("Err:", err)
 		return
     }
     DB = goqu.New("mysql", sqlDB)
-	fmt.Println("Kết nối đến cơ sở dữ liệu thành công")
-
+	fmt.Println("Connected to database")
 }

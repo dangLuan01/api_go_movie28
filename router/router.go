@@ -7,8 +7,8 @@ import (
 func SetupRouter() *mux.Router{
 	router := mux.NewRouter()
 	
-	router.HandleFunc("/api/v1/movies", movieapi.GetMovie).Methods("GET")
-	router.HandleFunc("/api/v1/categories", movieapi.GetCategory).Methods("GET")
-
+	router.HandleFunc("/api/v1/movie-hot", movieapi.GetMovieHot).Methods("GET")
+	router.HandleFunc("/api/v1/category", movieapi.GetCategory).Methods("GET")
+	router.HandleFunc("/api/v1/movies", movieapi.GetAllMovie).Methods("GET")
 	return router
 }
