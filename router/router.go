@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/dangLuan01/restapi_go/apis/movieapi"
+	"github.com/dangLuan01/restapi_go/apis/genreapi"
 	"github.com/gorilla/mux"
 )
 func SetupRouter() *mux.Router{
@@ -9,6 +10,8 @@ func SetupRouter() *mux.Router{
 	
 	router.HandleFunc("/api/v1/movie-hot", movieapi.GetMovieHot).Methods("GET")
 	router.HandleFunc("/api/v1/category", movieapi.GetCategory).Methods("GET")
-	router.HandleFunc("/api/v1/movies", movieapi.GetAllMovie).Methods("GET")
+	router.HandleFunc("/api/v1/movies", movieapi.GetAllMovie).Methods("POST")
+
+	router.HandleFunc("/api/v1/genre", genreapi.GetAllGenre).Methods("GET")
 	return router
 }

@@ -9,6 +9,7 @@ type MovieRaw struct {
 	Id    			int    `json:"id"`
 	Name  			string `json:"name"`
 	Slug  			string `json:"slug"`
+	Type  			string `json:"type"`
 	Release_date 	int    `json:"release_date"`
 	Rating			float64 `json:"rating"`
 	Thumb 			string `json:"thumb"`
@@ -34,6 +35,7 @@ func GetAllMovieHot() []entities.Movie {
 		goqu.I("movies.id"),
 		goqu.I("movies.name"),
 		goqu.I("movies.slug"),
+		goqu.I("movies.type"),
 		goqu.I("movies.release_date"),
 		goqu.I("movies.rating"),
 		goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image")).As("thumb"),
@@ -50,6 +52,7 @@ func GetAllMovieHot() []entities.Movie {
 			Id: item.Id,
 			Name: item.Name,
 			Slug: item.Slug,
+			Type: item.Type,
 			Release_date: item.Release_date,
 			Rating: item.Rating,
 			Image: entities.Image{
@@ -78,6 +81,7 @@ func GetAllMovie(page, pageSize int) (entities.PaginatedMovies) {
 		goqu.I("movies.id"),
 		goqu.I("movies.name"),
 		goqu.I("movies.slug"),
+		goqu.I("movies.type"),
 		goqu.I("movies.release_date"),
 		goqu.I("movies.rating"),
 		goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image")).As("poster"),
@@ -93,6 +97,7 @@ func GetAllMovie(page, pageSize int) (entities.PaginatedMovies) {
 			Id: item.Id,
 			Name: item.Name,
 			Slug: item.Slug,
+			Type: item.Type,
 			Release_date: item.Release_date,
 			Rating: item.Rating,
 			Image: entities.Image{
@@ -104,7 +109,5 @@ func GetAllMovie(page, pageSize int) (entities.PaginatedMovies) {
 		Data: listMovie,
 		Page: page,
 		PageSize: pageSize,
-		Total: 20000,
-		TotalPages: 1,
 	}	
 }

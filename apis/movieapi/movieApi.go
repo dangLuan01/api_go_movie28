@@ -1,30 +1,19 @@
 package movieapi
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
-	//"github.com/dangLuan01/restapi_go/entities"
 	"github.com/dangLuan01/restapi_go/models"
+	"github.com/dangLuan01/restapi_go/apis/utilapi"
 )
-func responeWithJson(respone http.ResponseWriter, statusCode int, data interface{}) {
-	result, err := json.Marshal(data)
-	if err != nil {
-		http.Error(respone, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	respone.Header().Set("Content-Type", "application/json")
-	respone.WriteHeader(statusCode)
-	respone.Write(result)
-}
 func GetMovieHot(respone http.ResponseWriter, request *http.Request) {
 	movie := models.GetAllMovieHot()
-	responeWithJson(respone, http.StatusOK, movie)
+	utilapi.ResponseWithJson(respone, http.StatusOK, movie)
 }
 
 func GetCategory(respone http.ResponseWriter, request *http.Request)  {
 	category := models.GetAllCategory()
-	responeWithJson(respone, http.StatusOK, category)
+	utilapi.ResponseWithJson(respone, http.StatusOK, category)
 }
 func GetAllMovie(respone http.ResponseWriter, request *http.Request)  {
 	query := request.URL.Query()
@@ -39,5 +28,5 @@ func GetAllMovie(respone http.ResponseWriter, request *http.Request)  {
 		pageSize = 10
 	}
 	movie := models.GetAllMovie(page, pageSize)
-	responeWithJson(respone, http.StatusOK, movie)
+	utilapi.ResponseWithJson(respone, http.StatusOK, movie)
 }
