@@ -5,16 +5,18 @@ import (
 	"strconv"
 	"github.com/dangLuan01/restapi_go/models"
 	"github.com/dangLuan01/restapi_go/apis/utilapi"
+	"github.com/gorilla/mux"
 )
+func GetCategory(respone http.ResponseWriter, request *http.Request)  {
+	category := models.GetAllCategory()
+	utilapi.ResponseWithJson(respone, http.StatusOK, category)
+}
+
 func GetMovieHot(respone http.ResponseWriter, request *http.Request) {
 	movie := models.GetAllMovieHot()
 	utilapi.ResponseWithJson(respone, http.StatusOK, movie)
 }
 
-func GetCategory(respone http.ResponseWriter, request *http.Request)  {
-	category := models.GetAllCategory()
-	utilapi.ResponseWithJson(respone, http.StatusOK, category)
-}
 func GetAllMovie(respone http.ResponseWriter, request *http.Request)  {
 	query := request.URL.Query()
 	pageGet := query.Get("page")
@@ -29,4 +31,10 @@ func GetAllMovie(respone http.ResponseWriter, request *http.Request)  {
 	}
 	movie := models.GetAllMovie(page, pageSize)
 	utilapi.ResponseWithJson(respone, http.StatusOK, movie)
+}
+func GetMovieBySlug(respone http.ResponseWriter, request *http.Request)  {
+	slug := mux.Vars(request)["slug"]
+	movice := models.GetDetailMovie(slug)
+	
+	utilapi.ResponseWithJson(respone, http.StatusOK, movice)
 }
