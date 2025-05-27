@@ -11,6 +11,7 @@ func ResponseWithJson(respone http.ResponseWriter, statusCode int, data interfac
 		return
 	}
 	respone.Header().Set("Content-Type", "application/json")
+	respone.Header().Set("Access-Control-Allow-Origin", "*")
 	respone.WriteHeader(statusCode)
 	respone.Write(result)
 }

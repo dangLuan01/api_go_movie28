@@ -10,7 +10,7 @@ func SetupRouter() *mux.Router{
 	
 	router.HandleFunc("/api/v1/movie-hot", movieapi.GetMovieHot).Methods("GET")
 	router.HandleFunc("/api/v1/category", movieapi.GetCategory).Methods("GET")
-	router.HandleFunc("/api/v1/movies", movieapi.GetAllMovie).Methods("POST")
+	router.HandleFunc("/api/v1/movies", movieapi.GetAllMovie).Methods("GET")
 
 	router.HandleFunc("/api/v1/genre", genreapi.GetAllGenre).Methods("GET")
 	return router
