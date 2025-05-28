@@ -88,6 +88,7 @@ func GetAllMovie(page, pageSize int) (entities.PaginatedMovies) {
 		goqu.I("movies.rating"),
 		goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image")).As("poster"),
 	).
+	Order(goqu.I("movies.updated_at").Desc()).
 	Limit(uint(pageSize)).Offset(uint((page - 1) * pageSize))
 
 	var movie []MovieRaw
