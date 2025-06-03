@@ -6,7 +6,22 @@ import (
 	"github.com/dangLuan01/restapi_go/entities"
 	"github.com/doug-martin/goqu/v9"
 )
+func GetAllGenreHome() ([]entities.Genre, error)  {
+	var listGenre []entities.Genre
 
+	query := config.DB.From("genres").
+	Select(
+		goqu.I("name"), 
+		goqu.I("slug")).
+	Order(
+		goqu.I("position").Asc())
+
+	if err := query.ScanStructs(&listGenre); err != nil {
+		return []entities.Genre{}, err
+	}
+
+	return listGenre, nil
+}
 func GetAllGenre() []entities.GenreWithMovies {
 	var listGenre []entities.GenreWithMovies
 	query := config.DB.From("genres").

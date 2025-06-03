@@ -1,6 +1,8 @@
 package models
 
 import (
+	"fmt"
+
 	"github.com/dangLuan01/restapi_go/config"
 	"github.com/dangLuan01/restapi_go/entities"
 	"github.com/doug-martin/goqu/v9"
@@ -18,10 +20,16 @@ type MovieRaw struct {
 	Trailer 		string `json:"trailer,omitempty"`
 	Thumb 			string `json:"thumb"`
 	Poster			string `json:"poster"`
+	Genre_name 		string
+}
+
+func convertRating(rating float32) float32 {
+	return float32(int(rating * 10)) / 10
 }
 
 func GetAllMovieHot() []entities.Movie {
 	var listHotMovie []entities.Movie
+
 	err := config.DB.From("movies").
 	LeftJoin(
 		goqu.T("movie_images").As("mi"),
@@ -29,6 +37,14 @@ func GetAllMovieHot() []entities.Movie {
 			goqu.I("movies.id").Eq(goqu.I("mi.movie_id")),
 		),
 	).
+	LeftJoin(
+        goqu.T("movie_genres").As("mg"),
+        goqu.On(goqu.I("movies.id").Eq(goqu.I("mg.movie_id"))),
+    ).
+    LeftJoin(
+        goqu.T("genres").As("g"),
+        goqu.On(goqu.I("mg.genre_id").Eq(goqu.I("g.id"))),
+    ).
 	Where(
 		goqu.Ex{
 			"movies.hot": 1,
@@ -42,12 +58,15 @@ func GetAllMovieHot() []entities.Movie {
 		goqu.I("movies.type"),
 		goqu.I("movies.release_date"),
 		goqu.I("movies.rating"),
+		
 		goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image")).As("thumb"),
+		goqu.I("g.name").As("genre_name"),
 	).
+	GroupBy("movies.id").
 	Limit(10)
-
 	var hot []MovieRaw
 	if err := err.ScanStructs(&hot); err != nil {
+		fmt.Println(err)
 		return nil
 	}
 
@@ -57,9 +76,14 @@ func GetAllMovieHot() []entities.Movie {
 			Slug: item.Slug,
 			Type: item.Type,
 			Release_date: item.Release_date,
-			Rating: item.Rating,
+			Rating: convertRating(float32(item.Rating)),
 			Image: entities.Image{
 				Thumb: item.Thumb,
+			},
+			Genres: []entities.Genre{
+				{
+					Name: item.Genre_name,
+				},
 			},
 		})
 	}
@@ -67,6 +91,7 @@ func GetAllMovieHot() []entities.Movie {
 }
 func GetAllMovie(page, pageSize int) (entities.PaginatedMovies) {
 	var listMovie []entities.Movie
+	var movie []MovieRaw
 	err := config.DB.From("movies").
 	LeftJoin(
 		goqu.T("movie_images").As("mi"),
@@ -74,9 +99,21 @@ func GetAllMovie(page, pageSize int) (entities.PaginatedMovies) {
 			goqu.I("movies.id").Eq(goqu.I("mi.movie_id")),
 		),
 	).
+	LeftJoin(
+        goqu.T("movie_genres").As("mg"),
+        goqu.On(
+            goqu.I("movies.id").Eq(goqu.I("mg.movie_id")),
+        ),
+    ).
+    LeftJoin(
+        goqu.T("genres").As("g"),
+        goqu.On(
+            goqu.I("mg.genre_id").Eq(goqu.I("g.id")),
+        ),
+    ).
 	Where(
 		goqu.Ex{
-			"movies.hot": nil,
+			"movies.hot": 0,
 			"mi.is_thumbnail": 0,
 		},
 	).
@@ -86,24 +123,31 @@ func GetAllMovie(page, pageSize int) (entities.PaginatedMovies) {
 		goqu.I("movies.type"),
 		goqu.I("movies.release_date"),
 		goqu.I("movies.rating"),
+		goqu.I("g.name").As("genre_name"),
 		goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image")).As("poster"),
 	).
+	GroupBy("movies.id").
 	Order(goqu.I("movies.updated_at").Desc()).
 	Limit(uint(pageSize)).Offset(uint((page - 1) * pageSize))
-
-	var movie []MovieRaw
+	
 	if err := err.ScanStructs(&movie); err != nil {
 		return entities.PaginatedMovies{}
 	}
+	
 	for _, item := range movie {
 		listMovie = append(listMovie, entities.Movie{
 			Name: item.Name,
 			Slug: item.Slug,
 			Type: item.Type,
 			Release_date: item.Release_date,
-			Rating: item.Rating,
+			Rating: convertRating(float32(item.Rating)),
 			Image: entities.Image{
 				Poster: item.Poster,
+			},
+			Genres: []entities.Genre{
+				{
+					Name: item.Genre_name,
+				},
 			},
 		})
 	}
@@ -160,7 +204,7 @@ func GetDetailMovie(slug string)  entities.Movie {
 		Slug: row.Slug,
 		Type: row.Type,
 		Release_date: row.Release_date,
-		Rating: row.Rating,
+		Rating: convertRating(float32(row.Rating)),
 		Content: row.Content,
 		Runtime: row.Runtime,
 		Age: row.Age,

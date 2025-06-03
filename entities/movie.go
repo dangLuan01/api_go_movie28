@@ -10,13 +10,14 @@ type Movie struct {
 	Slug   			string 		`json:"slug"`
 	Type  			string 		`json:"type"`
 	Release_date   	int    		`json:"release_date"`
-	Rating			float64 	`json:"rating"`
+	Rating			float32 	`json:"rating"`
 	Content 		string 		`json:"content,omitempty"`
 	Runtime 		string    	`json:"runtime,omitempty"`
 	Age 			string 		`json:"age,omitempty"`
 	Trailer 		string 		`json:"trailer,omitempty"`
 	Image 			Image  		`json:"image"`
 	Genres 			[]Genre 	`json:"genres,omitempty"`
+	Country 		[]Country 	`json:"country,omitempty"`
 	Servers 		[]Server	`json:"servers,omitempty"`
 }
 type Image struct {
@@ -25,8 +26,12 @@ type Image struct {
 }
 type Genre struct {
 	Name  			string 		`json:"name"`
-	Slug  			string 		`json:"slug"`
+	Slug  			string 		`json:"slug,omitempty"`
 	Image 			string 		`json:"image,omitempty"`
+}
+type Country struct {
+	Name 			string 		`json:"name"`
+	Slug 			string 		`json:"slug"`
 }
 type Episode struct {
 	Server_id 		int    		`json:"server_id"`
