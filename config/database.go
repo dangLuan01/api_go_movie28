@@ -31,6 +31,13 @@ func InitDB() {
 		fmt.Println("Err:", err)
 		return
     }
+	//defer sqlDB.Close()
+	err = sqlDB.Ping()
+	if err != nil {
+		fmt.Printf("Không thể kết nối đến MySQL: %v", err)
+	}
+	
     DB = goqu.New("mysql", sqlDB)
-	fmt.Println("Connected to database")
+	fmt.Println("Connected to database.")
+	
 }

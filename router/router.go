@@ -14,6 +14,6 @@ func SetupRouter() *mux.Router{
 	router.HandleFunc("/api/v1/genre", genreapi.GetAllGenre).Methods("GET")
 	router.HandleFunc("/api/v1/movie/{slug}", movieapi.GetMovieBySlug).Methods("GET")
 	router.HandleFunc("/api/v1/genre-home", genreapi.GetAllGenreHome).Methods("GET")
-
+	router.HandleFunc("/api/v1/genre/{slug}", genreapi.GetGenreInfo).Methods("GET")
 	return router
 }

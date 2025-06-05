@@ -23,7 +23,7 @@ type MovieRaw struct {
 	Genre_name 		string
 }
 
-func convertRating(rating float32) float32 {
+func ConvertRating(rating float32) float32 {
 	return float32(int(rating * 10)) / 10
 }
 
@@ -76,7 +76,7 @@ func GetAllMovieHot() []entities.Movie {
 			Slug: item.Slug,
 			Type: item.Type,
 			Release_date: item.Release_date,
-			Rating: convertRating(float32(item.Rating)),
+			Rating: ConvertRating(float32(item.Rating)),
 			Image: entities.Image{
 				Thumb: item.Thumb,
 			},
@@ -140,7 +140,7 @@ func GetAllMovie(page, pageSize int) (entities.PaginatedMovies) {
 			Slug: item.Slug,
 			Type: item.Type,
 			Release_date: item.Release_date,
-			Rating: convertRating(float32(item.Rating)),
+			Rating: ConvertRating(float32(item.Rating)),
 			Image: entities.Image{
 				Poster: item.Poster,
 			},
@@ -204,7 +204,7 @@ func GetDetailMovie(slug string)  entities.Movie {
 		Slug: row.Slug,
 		Type: row.Type,
 		Release_date: row.Release_date,
-		Rating: convertRating(float32(row.Rating)),
+		Rating: ConvertRating(float32(row.Rating)),
 		Content: row.Content,
 		Runtime: row.Runtime,
 		Age: row.Age,

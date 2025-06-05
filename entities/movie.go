@@ -25,6 +25,7 @@ type Image struct {
 	Thumb  			string 		`json:"thumb,omitempty"`
 }
 type Genre struct {
+	Id 				int         `json:"id,omitempty"`
 	Name  			string 		`json:"name"`
 	Slug  			string 		`json:"slug,omitempty"`
 	Image 			string 		`json:"image,omitempty"`
@@ -54,4 +55,19 @@ type PaginatedMovies struct {
 	Data       		[]Movie 	`json:"data"`
 	Page       		int     	`json:"page"`
 	PageSize   		int     	`json:"page_size"`
+}
+type MovieRaw struct {
+	Id   			int    `json:"id"`
+	Name  			string `json:"name"`
+	Slug  			string `json:"slug"`
+	Type  			string `json:"type"`
+	Release_date 	int    `json:"release_date"`
+	Rating			float64 `json:"rating"`
+	Content 		string `json:"content,omitempty"`
+	Runtime 		string `json:"runtime,omitempty"`
+	Age 			string `json:"age,omitempty"`
+	Trailer 		string `json:"trailer,omitempty"`
+	Thumb 			string `json:"thumb"`
+	Poster			string `json:"poster"`
+	Genre_name 		string
 }
