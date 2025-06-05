@@ -1,12 +1,14 @@
 package config
+
 import (
-	"os"
-	"fmt"
 	"database/sql"
-	"github.com/joho/godotenv"
+	"fmt"
+	"os"
+	"time"
 	"github.com/doug-martin/goqu/v9"
-	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/doug-martin/goqu/v9/dialect/mysql"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/joho/godotenv"
 )
 var DB *goqu.Database
 func init() {
@@ -31,6 +33,8 @@ func InitDB() {
 		fmt.Println("Err:", err)
 		return
     }
+	sqlDB.SetMaxIdleConns(25)
+	sqlDB.SetConnMaxLifetime(5 * time.Minute)
 	//defer sqlDB.Close()
 	err = sqlDB.Ping()
 	if err != nil {
