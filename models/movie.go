@@ -230,7 +230,7 @@ func GetAllMovie(page, pageSize int) (entities.PaginatedMovies, error) {
 // 	}, nil
 // }
 
-func GetDetailMovie(slug string) entities.Movie {
+func GetDetailMovie(slug string) (entities.Movie, error) {
 	var row MovieRaw
 	var genres []entities.Genre
 	ds := config.DB.Select(
@@ -253,7 +253,7 @@ func GetDetailMovie(slug string) entities.Movie {
 			goqu.I("movies.id").Eq(goqu.I("mi.movie_id")),
 		),
 	).Where(goqu.Ex{"slug": slug,"mi.is_thumbnail": 1})
-	found, err := ds.ScanStruct(&row)
+	_, err := ds.ScanStruct(&row)
 
 	err2 := config.DB.
 	From("genres").
@@ -267,10 +267,7 @@ func GetDetailMovie(slug string) entities.Movie {
 
 	if err != nil {
 		fmt.Println(err)
-		return entities.Movie{}
-	}
-	if !found {
-		return entities.Movie{}
+		return entities.Movie{}, err
 	}
 
 	movie := entities.Movie{
@@ -295,7 +292,7 @@ func GetDetailMovie(slug string) entities.Movie {
 		server = []entities.Server{}
 	}
 	movie.Servers = server
-	return movie
+	return movie, nil
 }
 // func GetServerWithEpisodes(movieId int) ([]entities.Server, error) {
 	

@@ -37,7 +37,9 @@ func GetAllMovie(respone http.ResponseWriter, request *http.Request)  {
 }
 func GetMovieBySlug(respone http.ResponseWriter, request *http.Request)  {
 	slug := mux.Vars(request)["slug"]
-	movie := models.GetDetailMovie(slug)
-	
+	movie, err := models.GetDetailMovie(slug)
+	if err != nil {
+		utilapi.ResponseWithJson(respone, http.StatusOK, err)
+	}
 	utilapi.ResponseWithJson(respone, http.StatusOK, movie)
 }

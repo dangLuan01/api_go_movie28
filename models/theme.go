@@ -4,7 +4,6 @@ import (
 	//"encoding/json"
 	"fmt"
 	"math"
-
 	"github.com/dangLuan01/restapi_go/config"
 	"github.com/dangLuan01/restapi_go/entities"
 	"github.com/doug-martin/goqu/v9"
@@ -21,7 +20,6 @@ func buildMovieQueryFromTheme(theme entities.ThemeInfo) *goqu.SelectDataset {
             goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image")).As("poster"),
             goqu.I("g.name").As("genre_name"),
         )
-    
     // Thêm join với movie_genre nếu có genre_id
     if theme.Genre_id != nil {
         query = query.LeftJoin(
@@ -41,22 +39,24 @@ func buildMovieQueryFromTheme(theme entities.ThemeInfo) *goqu.SelectDataset {
 			"mi.is_thumbnail": 0,
 		})
     }
-    
     // Thêm điều kiện country nếu có
     if theme.Country_id != nil {
-        query = query.Where(goqu.Ex{"movies.country_id": *theme.Country_id})
+        //query = query.Where(goqu.Ex{"movies.country_id": *theme.Country_id})
+        query = query.LeftJoin(
+            goqu.T("movie_countries").As("mc"),
+            goqu.On(goqu.I("mc.movie_id").Eq(goqu.I("movies.id"))),
+        ).Where(goqu.Ex{
+            "mc.country_id": *theme.Country_id,
+        })
     }
-    
     // Thêm điều kiện type nếu có
     if theme.Type != nil {
         query = query.Where(goqu.Ex{"movies.type": *theme.Type})
     }
-    
     // Thêm điều kiện year nếu có
     if theme.Year != nil {
         query = query.Where(goqu.I("movies.release_date").Like(fmt.Sprintf("%d%%", *theme.Year)))
     }
-    
     return query
 }
 func GetMoviesByTheme(theme entities.ThemeInfo, page, limit int) (entities.PaginatedMovies, error) {
@@ -67,11 +67,9 @@ func GetMoviesByTheme(theme entities.ThemeInfo, page, limit int) (entities.Pagin
     baseQuery := buildMovieQueryFromTheme(theme)
     
     totalCount, err := baseQuery.Count()
-	fmt.Println(totalCount)
     if err != nil {
         return entities.PaginatedMovies{}, err
     }
-    
     var movies []entities.MovieRaw
     err = baseQuery.
         Order(goqu.I("movies.updated_at").Desc()).
@@ -88,23 +86,22 @@ func GetMoviesByTheme(theme entities.ThemeInfo, page, limit int) (entities.Pagin
         resultMovies = append(resultMovies, convertMovieRawToMovie(m))
     }
     return entities.PaginatedMovies{
-        Data:       resultMovies,
-        Page:       page,
-        PageSize:    limit,
-        TotalPages: int(math.Ceil(float64(totalCount)/float64(limit))),
+        Data:           resultMovies,
+        Page:           page,
+        PageSize:       limit,
+        TotalPages:     int(math.Ceil(float64(totalCount)/float64(limit))),
     }, nil
 }
 
 func convertMovieRawToMovie(raw entities.MovieRaw) entities.Movie {
     return entities.Movie{
-        Name:         raw.Name,
-        Slug:         raw.Slug,
-        Type:         raw.Type,
-        Release_date: raw.Release_date,
-        Rating:       ConvertRating(float32(raw.Rating)),
-        Image:       entities.Image{Poster: raw.Poster},
-        // Lấy genres từ bảng khác nếu cần
-        Genres:       []entities.Genre{{Name: raw.Genre_name}},
+        Name:           raw.Name,
+        Slug:           raw.Slug,
+        Type:           raw.Type,
+        Release_date:   raw.Release_date,
+        Rating:         ConvertRating(float32(raw.Rating)),
+        Image:          entities.Image{Poster: raw.Poster},
+        Genres:         []entities.Genre{{Name: raw.Genre_name}},
     }
 }
 func GetAllThemesWithMovies(page, limit int) ([]entities.ThemeWithMovies, error) {
@@ -122,10 +119,33 @@ func GetAllThemesWithMovies(page, limit int) ([]entities.ThemeWithMovies, error)
         }
         
         result = append(result, entities.ThemeWithMovies{
-            ThemeInfo:      theme,
-            PaginatedMovies: movies,
+            ThemeInfo:          theme,
+            PaginatedMovies:    movies,
         })
     }
     
+    return result, nil
+}
+func GetThemeById(id, page, limit int) ([]entities.ThemeWithMovies, error) {
+    var theme entities.ThemeInfo
+    _, err := config.DB.From("themes").Where(goqu.Ex{
+        "themes.id": id,
+    }).ScanStruct(&theme)
+
+    if err != nil {
+        return nil, err
+    }
+
+    result := make([]entities.ThemeWithMovies, 0, 1) 
+    movie, err := GetMoviesByTheme(theme, page, limit)
+
+    if err != nil {
+        return nil, err
+    }
+    result = append(result, entities.ThemeWithMovies{
+        ThemeInfo: theme,
+        PaginatedMovies: movie,
+    })
+
     return result, nil
 }
