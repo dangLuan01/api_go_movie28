@@ -1,8 +1,8 @@
 package models
 
 import (
+	"encoding/json"
 	"fmt"
-
 	"github.com/dangLuan01/restapi_go/config"
 	"github.com/dangLuan01/restapi_go/entities"
 	"github.com/doug-martin/goqu/v9"
@@ -89,10 +89,11 @@ func GetAllMovieHot() []entities.Movie {
 	}
 	return listHotMovie
 }
-func GetAllMovie(page, pageSize int) (entities.PaginatedMovies) {
+func GetAllMovie(page, pageSize int) (entities.PaginatedMovies, error) {
 	var listMovie []entities.Movie
 	var movie []MovieRaw
-	err := config.DB.From("movies").
+	var totalPages int64
+	ds := config.DB.From("movies").
 	LeftJoin(
 		goqu.T("movie_images").As("mi"),
 		goqu.On(
@@ -127,11 +128,10 @@ func GetAllMovie(page, pageSize int) (entities.PaginatedMovies) {
 		goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image")).As("poster"),
 	).
 	GroupBy("movies.id").
-	Order(goqu.I("movies.updated_at").Desc()).
-	Limit(uint(pageSize)).Offset(uint((page - 1) * pageSize))
-	
-	if err := err.ScanStructs(&movie); err != nil {
-		return entities.PaginatedMovies{}
+	Order(goqu.I("movies.updated_at").Desc())
+
+	if err := ds.Limit(uint(pageSize)).Offset(uint((page - 1) * pageSize)).ScanStructs(&movie); err != nil {
+		return entities.PaginatedMovies{}, nil
 	}
 	
 	for _, item := range movie {
@@ -155,9 +155,82 @@ func GetAllMovie(page, pageSize int) (entities.PaginatedMovies) {
 		Data: listMovie,
 		Page: page,
 		PageSize: pageSize,
-	}	
+		TotalPages: int(totalPages),
+	}, nil	
 }
-func GetDetailMovie(slug string)  entities.Movie {
+// func GetAllMovie(page, pageSize int) (entities.PaginatedMovies, error) {
+// 	var movies []entities.Movie
+
+// 	// Subquery để lấy thumbnail
+// 	thumbnailSubq := config.DB.
+// 		From("movie_images").
+// 		Select(
+// 			goqu.I("movie_id"),
+// 			goqu.Func("CONCAT", goqu.I("path"), goqu.I("image")).As("poster"),
+// 		).
+// 		Where(goqu.Ex{"is_thumbnail": 0}).
+// 		GroupBy("movie_id")
+
+// 	// Main query
+// 	ds := config.DB.
+// 		From("movies").
+// 		LeftJoin(
+// 			goqu.T("movie_genres").As("mg"),
+// 			goqu.On(goqu.I("movies.id").Eq(goqu.I("mg.movie_id"))),
+// 		).
+// 		LeftJoin(
+// 			goqu.T("genres").As("g"),
+// 			goqu.On(goqu.I("mg.genre_id").Eq(goqu.I("g.id"))),
+// 		).
+// 		LeftJoin(
+// 			goqu.L("(?)", thumbnailSubq).As("mi"),
+// 			goqu.On(goqu.I("movies.id").Eq(goqu.I("mi.movie_id"))),
+// 		).
+// 		Where(goqu.Ex{"movies.hot": 0}).
+// 		Select(
+// 			goqu.I("movies.name"),
+// 			goqu.I("movies.slug"),
+// 			goqu.I("movies.type"),
+// 			goqu.I("movies.release_date"),
+// 			goqu.I("movies.rating"),
+// 			goqu.I("mi.poster").As("image_raw"),
+// 			// Gom genres thành JSON array
+// 			goqu.L(`JSON_ARRAYAGG(
+// 				CASE 
+// 					WHEN g.id IS NULL THEN NULL
+// 					ELSE JSON_OBJECT('name', g.name)
+// 				END
+// 			)`).As("genres_raw"),
+// 		).
+// 		GroupBy(goqu.I("movies.id")).
+// 		Order(goqu.I("movies.updated_at").Desc()).
+// 		Limit(uint(pageSize)).
+// 		Offset(uint((page - 1) * pageSize))
+	
+// 	//Scan
+// 	if err := ds.ScanStructs(&movies); err != nil {
+// 		fmt.Println(err)
+// 		return entities.PaginatedMovies{}, err
+// 	}
+	
+// 	// Sau khi ScanStructs(&movies)
+// 	for i := range movies {
+// 		if movies[i].GenresRaw != "" {
+// 			_ = json.Unmarshal([]byte(movies[i].GenresRaw), &movies[i].Genres)
+// 		}
+// 		if movies[i].ImageRaw != "" {
+//         	movies[i].Image.Poster = movies[i].ImageRaw
+//     	}
+// 	}
+
+// 	return entities.PaginatedMovies{
+// 		Data:     movies,
+// 		Page:     page,
+// 		PageSize: pageSize,
+// 	}, nil
+// }
+
+func GetDetailMovie(slug string) entities.Movie {
 	var row MovieRaw
 	var genres []entities.Genre
 	ds := config.DB.Select(
@@ -168,7 +241,7 @@ func GetDetailMovie(slug string)  entities.Movie {
 		"movies.release_date",
 		"movies.rating",
 		goqu.Func("IFNULL", goqu.I("movies.content"), "").As("content"),
-		"movies.runtime",
+		goqu.Func("IFNULL", goqu.I("movies.runtime"), "").As("content"),
 		goqu.Func("IFNULL", goqu.I("movies.age"), "").As("age"),
 		"movies.trailer",
 		goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image")).As("thumb"),
@@ -193,6 +266,7 @@ func GetDetailMovie(slug string)  entities.Movie {
 	ScanStructs(&genres)
 
 	if err != nil {
+		fmt.Println(err)
 		return entities.Movie{}
 	}
 	if !found {
@@ -223,38 +297,91 @@ func GetDetailMovie(slug string)  entities.Movie {
 	movie.Servers = server
 	return movie
 }
-func GetServerWithEpisodes(movieId int) ([]entities.Server, error) {
+// func GetServerWithEpisodes(movieId int) ([]entities.Server, error) {
 	
-	var servers []entities.Server
-	var episodes []entities.Episode
+// 	var servers []entities.Server
+// 	var episodes []entities.Episode
 	
-	err := config.DB.From("movie_servers").
-		Join(goqu.T("episodes"), goqu.On(goqu.I("movie_servers.id").Eq(goqu.I("episodes.server_id")))).
-		Where(goqu.Ex{"episodes.movie_id": uint(movieId)}).
-		Select("movie_servers.id", "movie_servers.name").
-		GroupBy("movie_servers.id").ScanStructs(&servers)
+// 	err := config.DB.From("movie_servers").
+// 		Join(goqu.T("episodes"), goqu.On(goqu.I("movie_servers.id").Eq(goqu.I("episodes.server_id")))).
+// 		Where(goqu.Ex{"episodes.movie_id": uint(movieId)}).
+// 		Select("movie_servers.id", "movie_servers.name").
+// 		GroupBy("movie_servers.id").ScanStructs(&servers)
 	
-	if err != nil {
-		return nil, err
-	}
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	err = config.DB.From("episodes").
-		Where(goqu.Ex{"movie_id": uint(movieId)}).
-		Select("server_id", "episode", "hls").
-		ScanStructs(&episodes)
+// 	err = config.DB.From("episodes").
+// 		Where(goqu.Ex{"movie_id": uint(movieId)}).
+// 		Select("server_id", "episode", "hls").
+// 		ScanStructs(&episodes)
 	
-	if err != nil {
-		return nil, err
-	}
-	serverMap := make(map[int]*entities.Server)
-	for i := range servers {
-		serverMap[servers[i].Id] = &servers[i]
-	}
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	serverMap := make(map[int]*entities.Server)
+// 	for i := range servers {
+// 		serverMap[servers[i].Id] = &servers[i]
+// 	}
 	
-	for _, ep := range episodes {
-		if server, ok := serverMap[ep.Server_id]; ok {
-			server.Episodes = append(server.Episodes, ep)
-		}
-	}
-	return servers, nil
+// 	for _, ep := range episodes {
+// 		if server, ok := serverMap[ep.Server_id]; ok {
+// 			server.Episodes = append(server.Episodes, ep)
+// 		}
+// 	}
+// 	return servers, nil
+// }
+func GetServerWithEpisodes(movieId int) ([]entities.Server, error) {
+    var servers []struct {
+        Id       int             `db:"id"`
+        Name     string          `db:"name"`
+        Episodes json.RawMessage `db:"episodes"`
+    }
+    err := config.DB.From("movie_servers").
+        LeftJoin(goqu.T("episodes"), 
+            goqu.On(goqu.I("movie_servers.id").Eq(goqu.I("episodes.server_id")))).
+        Where(goqu.Ex{
+            "episodes.movie_id": uint(movieId),
+        }).
+        Select(
+            "movie_servers.id",
+            "movie_servers.name",
+            goqu.L(`JSON_ARRAYAGG(
+                CASE 
+                    WHEN episodes.server_id IS NULL THEN NULL
+                    ELSE JSON_OBJECT(
+                        'server_id', episodes.server_id,
+                        'episode', episodes.episode,
+                        'hls', episodes.hls
+                    )
+                END
+            )`).As("episodes"),
+        ).
+        GroupBy("movie_servers.id").
+        ScanStructs(&servers)
+
+    if err != nil {
+        return nil, err
+    }
+    result := make([]entities.Server, 0, len(servers))
+    for _, s := range servers {
+        server := entities.Server{
+            Id:   s.Id,
+            Name: s.Name,
+        }
+
+        // Parse JSON episodes nếu có
+        if len(s.Episodes) > 0 && string(s.Episodes) != "null" {
+            var episodes []entities.Episode
+            if err := json.Unmarshal(s.Episodes, &episodes); err != nil {
+                return nil, fmt.Errorf("failed to unmarshal episodes: %v", err)
+            }
+            server.Episodes = episodes
+        }
+
+        result = append(result, server)
+    }
+
+    return result, nil
 }

@@ -15,7 +15,9 @@ type Movie struct {
 	Runtime 		string    	`json:"runtime,omitempty"`
 	Age 			string 		`json:"age,omitempty"`
 	Trailer 		string 		`json:"trailer,omitempty"`
+	//ImageRaw  		string   	`db:"image_raw" json:"-"`
 	Image 			Image  		`json:"image"`
+	//GenresRaw    	string   	`db:"genres_raw" json:"-"`
 	Genres 			[]Genre 	`json:"genres,omitempty"`
 	Country 		[]Country 	`json:"country,omitempty"`
 	Servers 		[]Server	`json:"servers,omitempty"`
@@ -55,9 +57,10 @@ type PaginatedMovies struct {
 	Data       		[]Movie 	`json:"data"`
 	Page       		int     	`json:"page"`
 	PageSize   		int     	`json:"page_size"`
+	TotalPages 		int			`json:"total_pages"`
 }
 type MovieRaw struct {
-	Id   			int    `json:"id"`
+	Id   			int    `json:"id,omitempty"`
 	Name  			string `json:"name"`
 	Slug  			string `json:"slug"`
 	Type  			string `json:"type"`
@@ -70,4 +73,21 @@ type MovieRaw struct {
 	Thumb 			string `json:"thumb"`
 	Poster			string `json:"poster"`
 	Genre_name 		string
+}
+type Collection struct {
+	Name 			string 	`json:"name"`
+	Slug 			string 	`json:"slug"`
+	Image 			string 	`json:"image"`
+}
+type ThemeInfo struct {
+	Id 			int		`json:"id"`
+	Name 		string	`json:"name"`
+	Genre_id 	*int	`json:"genre_id,omitempty"`
+	Country_id	*int	`json:"country_id,omitempty"`
+	Type 		*string	`json:"type,omitempty"`
+	Year 		*int	`json:"year,omitempty"`
+}
+type ThemeWithMovies struct {
+	ThemeInfo 			ThemeInfo		`json:"theme"`
+	PaginatedMovies 	PaginatedMovies `json:"datas"`
 }

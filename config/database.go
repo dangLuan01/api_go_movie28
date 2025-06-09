@@ -33,7 +33,7 @@ func InitDB() {
 		fmt.Println("Err:", err)
 		return
     }
-	sqlDB.SetMaxIdleConns(25)
+	//sqlDB.SetMaxIdleConns(25)
 	sqlDB.SetConnMaxLifetime(5 * time.Minute)
 	//defer sqlDB.Close()
 	err = sqlDB.Ping()

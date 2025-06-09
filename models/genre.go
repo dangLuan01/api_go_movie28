@@ -55,6 +55,7 @@ func GetItemGenre(slug string, page, pageSize int) (entities.PaginatedMovies, er
 	var listMovie []entities.Movie
 	var genreInfo entities.Genre
 	var movie []entities.MovieRaw
+	var totalPages int64
 	queryGenre := config.DB.From("genres").Where(
 		goqu.Ex{"slug": slug},
 	).Select(goqu.I("id"), goqu.I("name"))
@@ -92,10 +93,17 @@ func GetItemGenre(slug string, page, pageSize int) (entities.PaginatedMovies, er
 		goqu.I("movies.rating"),
 		goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image")).As("poster"),
 	).
-	Order(goqu.I("movies.updated_at").Desc()).
-	Limit(uint(pageSize)).Offset(uint((page - 1) * pageSize))
-
-	if err := queryMovie.ScanStructs(&movie); err != nil {
+	Order(goqu.I("movies.updated_at").Desc())
+	
+	count, err := queryMovie.Count()
+	if err != nil {
+		return entities.PaginatedMovies{}, err
+	}
+	totalPages = count/int64(pageSize)
+	if totalPages == 0 {
+		totalPages = 1
+	}
+	if err := queryMovie.Limit(uint(pageSize)).Offset(uint((page - 1) * pageSize)).ScanStructs(&movie); err != nil {
 		return entities.PaginatedMovies{}, err
 	}
 	for _, item := range movie {
@@ -120,5 +128,6 @@ func GetItemGenre(slug string, page, pageSize int) (entities.PaginatedMovies, er
 		Data: listMovie,
 		Page: page,
 		PageSize: pageSize,
+		TotalPages: int(totalPages),
 	}, nil
 }

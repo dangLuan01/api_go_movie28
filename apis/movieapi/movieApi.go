@@ -29,12 +29,15 @@ func GetAllMovie(respone http.ResponseWriter, request *http.Request)  {
 	if err != nil || pageSize < 1 {
 		pageSize = 10
 	}
-	movie := models.GetAllMovie(page, pageSize)
+	movie, err := models.GetAllMovie(page, pageSize)
+	if err != nil {
+		utilapi.ResponseWithJson(respone, http.StatusOK, err)
+	}
 	utilapi.ResponseWithJson(respone, http.StatusOK, movie)
 }
 func GetMovieBySlug(respone http.ResponseWriter, request *http.Request)  {
 	slug := mux.Vars(request)["slug"]
-	movice := models.GetDetailMovie(slug)
+	movie := models.GetDetailMovie(slug)
 	
-	utilapi.ResponseWithJson(respone, http.StatusOK, movice)
+	utilapi.ResponseWithJson(respone, http.StatusOK, movie)
 }
