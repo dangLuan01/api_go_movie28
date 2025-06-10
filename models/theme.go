@@ -11,38 +11,39 @@ import (
 
 func buildMovieQueryFromTheme(theme entities.ThemeInfo) *goqu.SelectDataset {
     query := config.DB.From("movies").Select(
-            goqu.I("movies.id"),
-            goqu.I("movies.name"),
-            goqu.I("movies.slug"),
-            goqu.I("movies.type"),
-            goqu.I("movies.release_date"),
-            goqu.I("movies.rating"),
-            goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image")).As("poster"),
-            goqu.I("g.name").As("genre_name"),
-        )
+        goqu.I("movies.id"),
+        goqu.I("movies.name"),
+        goqu.I("movies.slug"),
+        goqu.I("movies.type"),
+        goqu.I("movies.release_date"),
+        goqu.I("movies.rating"),
+        goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image")).As("poster"),
+        goqu.I("g.name").As("genre_name"),
+    ).
+    LeftJoin(
+        goqu.T("movie_images").As("mi"),
+        goqu.On(goqu.And(
+            goqu.I("mi.movie_id").Eq(goqu.I("movies.id")),
+            goqu.I("mi.is_thumbnail").Eq(0),
+        )),
+    ).
+    LeftJoin(
+        goqu.T("movie_genres").As("mg"),
+        goqu.On(goqu.I("mg.movie_id").Eq(goqu.I("movies.id"))),
+    ).
+	LeftJoin(
+        goqu.T("genres").As("g"),
+        goqu.On(goqu.I("mg.genre_id").Eq(goqu.I("g.id"))),
+    )
     // Thêm join với movie_genre nếu có genre_id
     if theme.Genre_id != nil {
-        query = query.LeftJoin(
-            goqu.T("movie_genres").As("mg"),
-            goqu.On(goqu.I("mg.movie_id").Eq(goqu.I("movies.id"))),
-        ).
-		LeftJoin(
-        	goqu.T("genres").As("g"),
-        	goqu.On(goqu.I("mg.genre_id").Eq(goqu.I("g.id"))),
-    	).
-		 LeftJoin(
-            goqu.T("movie_images").As("mi"),
-            goqu.On(goqu.I("mi.movie_id").Eq(goqu.I("movies.id"))),
-        ).
-		Where(goqu.Ex{
+        query = query.Where(goqu.Ex{
 			"mg.genre_id": *theme.Genre_id,
-			"mi.is_thumbnail": 0,
 		})
     }
     // Thêm điều kiện country nếu có
     if theme.Country_id != nil {
-        //query = query.Where(goqu.Ex{"movies.country_id": *theme.Country_id})
-        query = query.LeftJoin(
+        query = query.Join(
             goqu.T("movie_countries").As("mc"),
             goqu.On(goqu.I("mc.movie_id").Eq(goqu.I("movies.id"))),
         ).Where(goqu.Ex{
@@ -57,7 +58,7 @@ func buildMovieQueryFromTheme(theme entities.ThemeInfo) *goqu.SelectDataset {
     if theme.Year != nil {
         query = query.Where(goqu.I("movies.release_date").Like(fmt.Sprintf("%d%%", *theme.Year)))
     }
-    return query
+    return query.GroupBy("movies.id")
 }
 func GetMoviesByTheme(theme entities.ThemeInfo, page, limit int) (entities.PaginatedMovies, error) {
     if page < 1 { page = 1 }
