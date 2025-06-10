@@ -152,7 +152,7 @@ func GetAllMovie(page, pageSize int) (entities.PaginatedMovies, error) {
 		})
 	}
 	return entities.PaginatedMovies{
-		Data: listMovie,
+		Movie: listMovie,
 		Page: page,
 		PageSize: pageSize,
 		TotalPages: int(totalPages),

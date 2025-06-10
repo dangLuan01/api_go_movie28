@@ -96,7 +96,7 @@ func GetMovieCollection(slug string, page, pageSize int) (entities.PaginatedMovi
 		})
 	}
 	return entities.PaginatedMovies{
-		Data: listMovie,
+		Movie: listMovie,
 		Page: page,
 		PageSize: pageSize,
 		TotalPages: int(totalPages),

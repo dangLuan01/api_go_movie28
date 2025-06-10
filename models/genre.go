@@ -125,7 +125,7 @@ func GetItemGenre(slug string, page, pageSize int) (entities.PaginatedMovies, er
 	}
 	
 	return entities.PaginatedMovies{
-		Data: listMovie,
+		Movie: listMovie,
 		Page: page,
 		PageSize: pageSize,
 		TotalPages: int(totalPages),

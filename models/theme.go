@@ -86,7 +86,7 @@ func GetMoviesByTheme(theme entities.ThemeInfo, page, limit int) (entities.Pagin
         resultMovies = append(resultMovies, convertMovieRawToMovie(m))
     }
     return entities.PaginatedMovies{
-        Data:           resultMovies,
+        Movie:           resultMovies,
         Page:           page,
         PageSize:       limit,
         TotalPages:     int(math.Ceil(float64(totalCount)/float64(limit))),
@@ -104,15 +104,27 @@ func convertMovieRawToMovie(raw entities.MovieRaw) entities.Movie {
         Genres:         []entities.Genre{{Name: raw.Genre_name}},
     }
 }
-func GetAllThemesWithMovies(page, limit int) ([]entities.ThemeWithMovies, error) {
+func GetAllThemesWithMovies(id, pageTheme, pageMovie, limit int) (entities.PagiateTheme, error) {
+    if pageTheme < 1 { pageTheme = 1 }
+    if limit < 1 { limit = 4 }
+    offset := (pageTheme - 1) * limit
     var themes []entities.ThemeInfo
-    if err := config.DB.From("themes").ScanStructs(&themes); err != nil {
-        return nil, err
+    
+    ds := config.DB.From(goqu.T("themes").As("t")).Where(goqu.Ex{
+        "t.status": 1,
+    })
+    if id != 0 {
+        ds = ds.Where(goqu.Ex{
+            "t.id": uint(id),
+        })
     }
-
+    if err := ds.Order(goqu.I("t.priority").Asc()).Offset(uint(offset)).Limit(uint(limit)).ScanStructs(&themes); err != nil {
+        return entities.PagiateTheme{}, err
+    }
+    totalCount, _ := ds.Count()
     result := make([]entities.ThemeWithMovies, 0, len(themes))
     for _, theme := range themes {
-        movies, err := GetMoviesByTheme(theme, page, limit)
+        movies, err := GetMoviesByTheme(theme, pageMovie, theme.Limit)
         if err != nil {
             fmt.Printf("Error getting movies for theme %s: %v", theme.Name, err)
             continue
@@ -123,29 +135,12 @@ func GetAllThemesWithMovies(page, limit int) ([]entities.ThemeWithMovies, error)
             PaginatedMovies:    movies,
         })
     }
+    results := entities.PagiateTheme{
+        ThemeWithMovies: result,
+        Page: pageTheme,
+        PageSize: limit,
+        TotalPages: int(math.Ceil(float64(totalCount)/float64(limit))),
+    }
     
-    return result, nil
-}
-func GetThemeById(id, page, limit int) ([]entities.ThemeWithMovies, error) {
-    var theme entities.ThemeInfo
-    _, err := config.DB.From("themes").Where(goqu.Ex{
-        "themes.id": id,
-    }).ScanStruct(&theme)
-
-    if err != nil {
-        return nil, err
-    }
-
-    result := make([]entities.ThemeWithMovies, 0, 1) 
-    movie, err := GetMoviesByTheme(theme, page, limit)
-
-    if err != nil {
-        return nil, err
-    }
-    result = append(result, entities.ThemeWithMovies{
-        ThemeInfo: theme,
-        PaginatedMovies: movie,
-    })
-
-    return result, nil
+    return results, nil
 }

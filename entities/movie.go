@@ -54,7 +54,7 @@ type GenreWithMovies struct {
 }
 
 type PaginatedMovies struct {
-	Data       		[]Movie 	`json:"data"`
+	Movie       	[]Movie 	`json:"movies"`
 	Page       		int     	`json:"page"`
 	PageSize   		int     	`json:"page_size"`
 	TotalPages 		int			`json:"total_pages"`
@@ -86,8 +86,15 @@ type ThemeInfo struct {
 	Country_id	*int	`json:"country_id,omitempty"`
 	Type 		*string	`json:"type,omitempty"`
 	Year 		*int	`json:"year,omitempty"`
+	Limit		int		`json:"limit"`
 }
 type ThemeWithMovies struct {
 	ThemeInfo 			ThemeInfo		`json:"theme"`
-	PaginatedMovies 	PaginatedMovies `json:"datas"`
+	PaginatedMovies 	PaginatedMovies `json:"data"`
+}
+type PagiateTheme struct {
+	ThemeWithMovies []ThemeWithMovies `json:"datas"`
+	Page       		int     	`json:"page,omitempty"`
+	PageSize   		int     	`json:"page_size,omitempty"`
+	TotalPages 		int			`json:"total_pages,omitempty"`
 }
