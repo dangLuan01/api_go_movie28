@@ -13,6 +13,7 @@ func buildMovieQueryFromTheme(theme entities.ThemeInfo) *goqu.SelectDataset {
     query := config.DB.From("movies").Select(
         goqu.I("movies.id"),
         goqu.I("movies.name"),
+        goqu.I("movies.origin_name"),
         goqu.I("movies.slug"),
         goqu.I("movies.type"),
         goqu.I("movies.release_date"),
@@ -58,7 +59,7 @@ func buildMovieQueryFromTheme(theme entities.ThemeInfo) *goqu.SelectDataset {
     if theme.Year != nil {
         query = query.Where(goqu.I("movies.release_date").Like(fmt.Sprintf("%d%%", *theme.Year)))
     }
-    return query.GroupBy("movies.id")
+    return query
 }
 func GetMoviesByTheme(theme entities.ThemeInfo, page, limit int) (entities.PaginatedMovies, error) {
     if page < 1 { page = 1 }
@@ -72,7 +73,7 @@ func GetMoviesByTheme(theme entities.ThemeInfo, page, limit int) (entities.Pagin
         return entities.PaginatedMovies{}, err
     }
     var movies []entities.MovieRaw
-    err = baseQuery.
+    err = baseQuery.GroupBy("movies.id").
         Order(goqu.I("movies.updated_at").Desc()).
         Offset(uint(offset)).
         Limit(uint(limit)).
@@ -87,7 +88,7 @@ func GetMoviesByTheme(theme entities.ThemeInfo, page, limit int) (entities.Pagin
         resultMovies = append(resultMovies, convertMovieRawToMovie(m))
     }
     return entities.PaginatedMovies{
-        Movie:           resultMovies,
+        Movie:          resultMovies,
         Page:           page,
         PageSize:       limit,
         TotalPages:     int(math.Ceil(float64(totalCount)/float64(limit))),
@@ -97,6 +98,7 @@ func GetMoviesByTheme(theme entities.ThemeInfo, page, limit int) (entities.Pagin
 func convertMovieRawToMovie(raw entities.MovieRaw) entities.Movie {
     return entities.Movie{
         Name:           raw.Name,
+        Origin_name:    raw.Origin_name,
         Slug:           raw.Slug,
         Type:           raw.Type,
         Release_date:   raw.Release_date,

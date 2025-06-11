@@ -8,18 +8,19 @@ import (
 	"github.com/doug-martin/goqu/v9"
 )
 type MovieRaw struct {
-	Id   			int    `json:"id"`
-	Name  			string `json:"name"`
-	Slug  			string `json:"slug"`
-	Type  			string `json:"type"`
-	Release_date 	int    `json:"release_date"`
+	Id   			int    	`json:"id"`
+	Name  			string 	`json:"name"`
+	Origin_name		string	`json:"origin_name"`
+	Slug  			string 	`json:"slug"`
+	Type  			string 	`json:"type"`
+	Release_date 	int    	`json:"release_date"`
 	Rating			float64 `json:"rating"`
-	Content 		string `json:"content,omitempty"`
-	Runtime 		string `json:"runtime,omitempty"`
-	Age 			string `json:"age,omitempty"`
-	Trailer 		string `json:"trailer,omitempty"`
-	Thumb 			string `json:"thumb"`
-	Poster			string `json:"poster"`
+	Content 		string 	`json:"content,omitempty"`
+	Runtime 		string 	`json:"runtime,omitempty"`
+	Age 			string 	`json:"age,omitempty"`
+	Trailer 		string 	`json:"trailer,omitempty"`
+	Thumb 			string 	`json:"thumb"`
+	Poster			string 	`json:"poster"`
 	Genre_name 		string
 }
 
@@ -54,11 +55,11 @@ func GetAllMovieHot() []entities.Movie {
 	Select(
 		goqu.I("movies.id"),
 		goqu.I("movies.name"),
+		goqu.I("movies.origin_name"),
 		goqu.I("movies.slug"),
 		goqu.I("movies.type"),
 		goqu.I("movies.release_date"),
 		goqu.I("movies.rating"),
-		
 		goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image")).As("thumb"),
 		goqu.I("g.name").As("genre_name"),
 	).
@@ -73,6 +74,7 @@ func GetAllMovieHot() []entities.Movie {
 	for _, item := range hot {
 		listHotMovie = append(listHotMovie, entities.Movie{
 			Name: item.Name,
+			Origin_name: item.Origin_name,
 			Slug: item.Slug,
 			Type: item.Type,
 			Release_date: item.Release_date,
@@ -120,6 +122,7 @@ func GetAllMovie(page, pageSize int) (entities.PaginatedMovies, error) {
 	).
 	Select(
 		goqu.I("movies.name"),
+		goqu.I("movies.origin_name"),
 		goqu.I("movies.slug"),
 		goqu.I("movies.type"),
 		goqu.I("movies.release_date"),
@@ -137,6 +140,7 @@ func GetAllMovie(page, pageSize int) (entities.PaginatedMovies, error) {
 	for _, item := range movie {
 		listMovie = append(listMovie, entities.Movie{
 			Name: item.Name,
+			Origin_name: item.Origin_name,
 			Slug: item.Slug,
 			Type: item.Type,
 			Release_date: item.Release_date,
@@ -236,14 +240,16 @@ func GetDetailMovie(slug string) (entities.Movie, error) {
 	ds := config.DB.Select(
 		"movies.id",
 		"movies.name",
+		"movies.origin_name",
 		"movies.slug",
 		"movies.type",
 		"movies.release_date",
 		"movies.rating",
 		goqu.Func("IFNULL", goqu.I("movies.content"), "").As("content"),
-		goqu.Func("IFNULL", goqu.I("movies.runtime"), "").As("content"),
+		goqu.Func("IFNULL", goqu.I("movies.runtime"), "").As("runtime"),
 		goqu.Func("IFNULL", goqu.I("movies.age"), "").As("age"),
-		"movies.trailer",
+		goqu.Func("IFNULL", goqu.I("movies.trailer"), "").As("trailer"),
+		//"movies.trailer",
 		goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image")).As("thumb"),
 	
 	).From("movies").
@@ -272,6 +278,7 @@ func GetDetailMovie(slug string) (entities.Movie, error) {
 
 	movie := entities.Movie{
 		Name: row.Name,
+		Origin_name: row.Origin_name,
 		Slug: row.Slug,
 		Type: row.Type,
 		Release_date: row.Release_date,

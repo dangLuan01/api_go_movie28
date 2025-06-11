@@ -7,6 +7,7 @@ type Category struct {
 }
 type Movie struct {
 	Name   			string 		`json:"name"`
+	Origin_name		string		`json:"origin_name"`
 	Slug   			string 		`json:"slug"`
 	Type  			string 		`json:"type"`
 	Release_date   	int    		`json:"release_date"`
@@ -60,18 +61,19 @@ type PaginatedMovies struct {
 	TotalPages 		int			`json:"total_pages"`
 }
 type MovieRaw struct {
-	Id   			int    `json:"id,omitempty"`
-	Name  			string `json:"name"`
-	Slug  			string `json:"slug"`
-	Type  			string `json:"type"`
-	Release_date 	int    `json:"release_date"`
+	Id   			int    	`json:"id,omitempty"`
+	Name  			string 	`json:"name"`
+	Origin_name		string	`json:"origin_name"`
+	Slug  			string 	`json:"slug"`
+	Type  			string 	`json:"type"`
+	Release_date 	int    	`json:"release_date"`
 	Rating			float64 `json:"rating"`
-	Content 		string `json:"content,omitempty"`
-	Runtime 		string `json:"runtime,omitempty"`
-	Age 			string `json:"age,omitempty"`
-	Trailer 		string `json:"trailer,omitempty"`
-	Thumb 			string `json:"thumb"`
-	Poster			string `json:"poster"`
+	Content 		string 	`json:"content,omitempty"`
+	Runtime 		string 	`json:"runtime,omitempty"`
+	Age 			string 	`json:"age,omitempty"`
+	Trailer 		string 	`json:"trailer,omitempty"`
+	Thumb 			string 	`json:"thumb"`
+	Poster			string 	`json:"poster"`
 	Genre_name 		string
 }
 type Collection struct {
@@ -87,6 +89,7 @@ type ThemeInfo struct {
 	Type 		*string	`json:"type,omitempty"`
 	Year 		*int	`json:"year,omitempty"`
 	Limit		int		`json:"limit"`
+	Layout		int		`json:"layout"`
 }
 type ThemeWithMovies struct {
 	ThemeInfo 			ThemeInfo		`json:"theme"`
