@@ -1,7 +1,7 @@
 package models
 
 import (
-	"log"
+	"fmt"
 	"github.com/dangLuan01/restapi_go/config"
 	"github.com/dangLuan01/restapi_go/entities"
 	"github.com/doug-martin/goqu/v9"
@@ -26,27 +26,20 @@ func GetAllGenreHome() ([]entities.Genre, error)  {
 func GetAllGenre() []entities.GenreWithMovies {
 	var listGenre []entities.GenreWithMovies
 	query := config.DB.From("genres").
-		Select(
-			goqu.I("name"),
-			goqu.I("slug"),
-			goqu.I("image"),
-			goqu.COUNT(goqu.I("mg.movie_id")).As("total_movies"),
-		).
-		LeftJoin(goqu.T("movie_genres").As("mg"),goqu.On(goqu.Ex{
-			"genres.id": goqu.I("mg.genre_id"),
-		})).
-		Where(
-			goqu.Ex{"status": 1,
-		}).
-		GroupBy(
-			"genres.name",
-			"genres.slug",
-			"genres.image",
-		).
-		Order(goqu.I("position").Asc())
+    Select(
+        goqu.I("genres.name"),
+        goqu.I("genres.slug"),
+        goqu.I("genres.image"),
+        goqu.COUNT(goqu.I("mg.movie_id")).As("total_movies"),
+    ).
+    InnerJoin(goqu.T("movie_genres").As("mg"), goqu.On(goqu.I("genres.id").Eq(goqu.I("mg.genre_id")))).
+    Where(goqu.I("genres.status").Eq(1)).
+    GroupBy(goqu.I("genres.id")).
+    Order(goqu.I("genres.position").Asc()).Limit(70)
+
 	err := query.ScanStructs(&listGenre)
 	if err != nil {
-		log.Println("Error fetching genres:", err)
+		fmt.Println("Error fetching genres:", err)
 		return nil
 	}
 	return listGenre
@@ -68,32 +61,31 @@ func GetItemGenre(slug string, page, pageSize int) (entities.PaginatedMovies, er
 	if !found {
 		return entities.PaginatedMovies{}, nil
 	}
-
+	posterSubquery := config.DB.From(goqu.T("movie_images").As("mi")).
+		Where(
+			goqu.I("mi.movie_id").Eq(goqu.I("m.id")),
+			goqu.I("mi.is_thumbnail").Eq(0),
+		).
+		Select(goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image"))).
+		Limit(1)
 	queryMovie := config.DB.
-	From("movies").
-	LeftJoin(
-		goqu.T("movie_images").As("mi"),
-		goqu.On(
-			goqu.I("movies.id").Eq(goqu.I("mi.movie_id")),
-		),
-	).
+	From(goqu.T("movies").As("m")).
 	LeftJoin(
 		goqu.T("movie_genres").As("mg"),
-		goqu.On(goqu.I("movies.id").Eq(goqu.I("mg.movie_id"))),
+		goqu.On(goqu.I("m.id").Eq(goqu.I("mg.movie_id"))),
 	).
 	Where(
 		goqu.Ex{"mg.genre_id":genreInfo.Id},
-		goqu.Ex{"mi.is_thumbnail": 0},
 	).
 	Select(
-		goqu.I("movies.name"),
-		goqu.I("movies.slug"),
-		goqu.I("movies.type"),
-		goqu.I("movies.release_date"),
-		goqu.I("movies.rating"),
-		goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image")).As("poster"),
+		goqu.I("m.name"),
+		goqu.I("m.slug"),
+		goqu.I("m.type"),
+		goqu.I("m.release_date"),
+		goqu.I("m.rating"),
+		posterSubquery.As("poster"),
 	).
-	Order(goqu.I("movies.updated_at").Desc())
+	Order(goqu.I("m.updated_at").Desc())
 	
 	count, err := queryMovie.Count()
 	if err != nil {

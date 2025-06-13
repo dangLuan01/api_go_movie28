@@ -3,7 +3,12 @@ package models
 import (
 	//"encoding/json"
 	"fmt"
+	
 	"math"
+    "log"
+	"sync"
+	"time"
+
 	"github.com/dangLuan01/restapi_go/config"
 	"github.com/dangLuan01/restapi_go/entities"
 	"github.com/doug-martin/goqu/v9"
@@ -38,7 +43,8 @@ func buildMovieQueryFromTheme(theme entities.ThemeInfo) *goqu.SelectDataset {
             goqu.I("m.rating"),
             posterSubquery.As("poster"),
             genreSubquery.As("genre_name"),
-        )
+        ).
+        Where(goqu.I("m.hot").Eq(0))
     // Điều kiện genre_id
     if theme.Genre_id != nil {
         query = query.Join(
@@ -62,22 +68,19 @@ func buildMovieQueryFromTheme(theme entities.ThemeInfo) *goqu.SelectDataset {
 
     // Điều kiện year
     if theme.Year != nil {
-        // Sử dụng YEAR(release_date) để tận dụng index
-        query = query.Where(goqu.Func("YEAR", goqu.I("m.release_date")).Eq(*theme.Year))
+       query = query.Where(goqu.I("m.release_year").Eq(*theme.Year))
     }
     query = query.Order(goqu.I("m.updated_at").Desc())
     return query
 }
 func GetMoviesByTheme(theme entities.ThemeInfo, page, limit int) (entities.PaginatedMovies, error) {
-    if page < 1 { page = 1 }
-    if limit < 1 { limit = 10 }
-    offset := (page - 1) * limit
-
-    baseQuery := buildMovieQueryFromTheme(theme)
-    
+    // if page < 1 { page = 1 }
+    // if limit < 1 { limit = 10 }
+    offset      := (page - 1) * limit
+    baseQuery   := buildMovieQueryFromTheme(theme)
     totalCount, err := baseQuery.Count()
     if err != nil {
-        return entities.PaginatedMovies{}, err
+        return entities.PaginatedMovies{}, fmt.Errorf("failed to count movies: %v", err)
     }
     var movies []entities.MovieRaw
     err = baseQuery.Offset(uint(offset)).
@@ -85,7 +88,7 @@ func GetMoviesByTheme(theme entities.ThemeInfo, page, limit int) (entities.Pagin
         ScanStructs(&movies)
     
     if err != nil {
-        return entities.PaginatedMovies{}, err
+        return entities.PaginatedMovies{}, fmt.Errorf("failed to scan movies: %v", err)
     }
     
     resultMovies := make([]entities.Movie, 0, len(movies))
@@ -112,12 +115,58 @@ func convertMovieRawToMovie(raw entities.MovieRaw) entities.Movie {
         Genres:         []entities.Genre{{Name: raw.Genre_name}},
     }
 }
-func GetAllThemesWithMovies(id, pageTheme, pageMovie, limit int) (entities.PagiateTheme, error) {
-    if pageTheme < 1 { pageTheme = 1 }
-    if limit < 1 { limit = 4 }
-    offset := (pageTheme - 1) * limit
-    var themes []entities.ThemeInfo
+// func GetAllThemesWithMovies(id, pageTheme, pageMovie, limit int) (entities.PagiateTheme, error) {
+//     if pageTheme < 1 { pageTheme = 1 }
+//     if limit < 1 { limit = 4 }
+//     offset := (pageTheme - 1) * limit
+//     var themes []entities.ThemeInfo
     
+//     ds := config.DB.From(goqu.T("themes").As("t")).Where(goqu.Ex{
+//         "t.status": 1,
+//     })
+//     if id != 0 {
+//         ds = ds.Where(goqu.Ex{
+//             "t.id": uint(id),
+//         })
+//     }
+//     totalCount, _ := ds.Count()
+//     if err := ds.Order(goqu.I("t.priority").Asc()).Offset(uint(offset)).Limit(uint(limit)).ScanStructs(&themes); err != nil {
+//         return entities.PagiateTheme{}, fmt.Errorf("failed: %v", err)
+//     }
+    
+//     result := make([]entities.ThemeWithMovies, 0, len(themes))
+//     for _, theme := range themes {
+//         movies, err := GetMoviesByTheme(theme, pageMovie, theme.Limit)
+//         if err != nil {
+//             fmt.Printf("Error getting movies for theme %s: %v", theme.Name, err)
+//             continue
+//         }
+        
+//         result = append(result, entities.ThemeWithMovies{
+//             ThemeInfo:          theme,
+//             PaginatedMovies:    movies,
+//         })
+//     }
+//     results := entities.PagiateTheme{
+//         ThemeWithMovies: result,
+//         Page: pageTheme,
+//         PageSize: limit,
+//         TotalPages: int(math.Ceil(float64(totalCount)/float64(limit))),
+//     }
+    
+//     return results, nil
+// }
+func GetAllThemesWithMovies(id, pageTheme, pageMovie, limit int) (entities.PagiateTheme, error) {
+    if pageTheme < 1 {
+        pageTheme = 1
+    }
+    if limit < 1 {
+        limit = 4
+    }
+    offset := (pageTheme - 1) * limit
+
+    // Lấy danh sách theme
+    var themes []entities.ThemeInfo
     ds := config.DB.From(goqu.T("themes").As("t")).Where(goqu.Ex{
         "t.status": 1,
     })
@@ -126,29 +175,85 @@ func GetAllThemesWithMovies(id, pageTheme, pageMovie, limit int) (entities.Pagia
             "t.id": uint(id),
         })
     }
-    if err := ds.Order(goqu.I("t.priority").Asc()).Offset(uint(offset)).Limit(uint(limit)).ScanStructs(&themes); err != nil {
-        return entities.PagiateTheme{}, err
+    totalCount, err := ds.Count()
+    if err != nil {
+        return entities.PagiateTheme{}, fmt.Errorf("failed to count themes: %v", err)
     }
-    totalCount, _ := ds.Count()
-    result := make([]entities.ThemeWithMovies, 0, len(themes))
-    for _, theme := range themes {
-        movies, err := GetMoviesByTheme(theme, pageMovie, theme.Limit)
-        if err != nil {
-            fmt.Printf("Error getting movies for theme %s: %v", theme.Name, err)
+    if err := ds.Order(goqu.I("t.priority").Asc()).Offset(uint(offset)).Limit(uint(limit)).ScanStructs(&themes); err != nil {
+        return entities.PagiateTheme{}, fmt.Errorf("failed to scan themes: %v", err)
+    }
+
+    // Kênh để thu thập kết quả và lỗi
+    type resultStruct struct { // Đổi tên để tránh nhầm lẫn với biến result
+        index           int
+        themeWithMovies entities.ThemeWithMovies
+        err             error
+    }
+    resultsChan := make(chan resultStruct, len(themes))
+    var wg sync.WaitGroup
+
+    // Chạy goroutines cho mỗi theme
+    start := time.Now()
+    for i, theme := range themes {
+        wg.Add(1)
+        go func(idx int, t entities.ThemeInfo) {
+            defer wg.Done()
+            movies, err := GetMoviesByTheme(t, pageMovie, t.Limit)
+            if err != nil {
+                resultsChan <- resultStruct{index: idx, err: fmt.Errorf("failed to get movies for theme %s: %v", t.Name, err)}
+                return
+            }
+            resultsChan <- resultStruct{
+                index: idx,
+                themeWithMovies: entities.ThemeWithMovies{
+                    ThemeInfo:       t,
+                    PaginatedMovies: movies,
+                },
+            }
+        }(i, theme)
+    }
+
+    // Đóng kênh sau khi tất cả goroutines hoàn thành
+    go func() {
+        wg.Wait()
+        close(resultsChan)
+    }()
+
+    // Thu thập kết quả theo thứ tự
+    resultSlice := make([]entities.ThemeWithMovies, len(themes))
+    var errors []error
+    for res := range resultsChan {
+        if res.err != nil {
+            errors = append(errors, res.err)
             continue
         }
-        
-        result = append(result, entities.ThemeWithMovies{
-            ThemeInfo:          theme,
-            PaginatedMovies:    movies,
-        })
+        resultSlice[res.index] = res.themeWithMovies
     }
-    results := entities.PagiateTheme{
+
+    // Ghi log thời gian
+    log.Printf("GetAllThemesWithMovies took %v for %d themes", time.Since(start), len(themes))
+
+    // Kiểm tra lỗi
+    if len(errors) > 0 {
+        log.Printf("Encountered %d errors while fetching movies: %v", len(errors), errors)
+        // Nếu tất cả theme đều lỗi, trả về lỗi
+        if len(errors) == len(themes) {
+            return entities.PagiateTheme{}, fmt.Errorf("failed to fetch movies for all themes: %v", errors)
+        }
+    }
+
+    // Loại bỏ các theme rỗng (nếu có)
+    result := make([]entities.ThemeWithMovies, 0, len(themes))
+    for _, r := range resultSlice {
+        if r.ThemeInfo.Id != 0 { // Chỉ thêm các theme có dữ liệu hợp lệ
+            result = append(result, r)
+        }
+    }
+
+    return entities.PagiateTheme{
         ThemeWithMovies: result,
-        Page: pageTheme,
-        PageSize: limit,
-        TotalPages: int(math.Ceil(float64(totalCount)/float64(limit))),
-    }
-    
-    return results, nil
+        Page:            pageTheme,
+        PageSize:        limit,
+        TotalPages:      int(math.Ceil(float64(totalCount)/float64(limit))),
+    }, nil
 }

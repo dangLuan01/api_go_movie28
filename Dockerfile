@@ -9,7 +9,8 @@ RUN go mod download
 
 # Copy source code
 COPY . .
-
+# COPY file .env vào trong image
+COPY .env .env
 # Build the Go binary
 RUN go build -o main .
 
@@ -20,6 +21,9 @@ WORKDIR /root/
 
 # Copy binary from builder
 COPY --from=builder /app/main .
+
+# Copy file .env từ builder stage
+COPY --from=builder /app/.env .env
 
 # Expose the application port (chỉnh theo app bạn)
 EXPOSE 8080
