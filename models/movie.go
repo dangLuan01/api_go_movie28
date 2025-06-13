@@ -30,40 +30,33 @@ func ConvertRating(rating float32) float32 {
 
 func GetAllMovieHot() []entities.Movie {
 	var listHotMovie []entities.Movie
-
-	err := config.DB.From("movies").
-	LeftJoin(
-		goqu.T("movie_images").As("mi"),
-		goqu.On(
-			goqu.I("movies.id").Eq(goqu.I("mi.movie_id")),
-		),
-	).
-	LeftJoin(
-        goqu.T("movie_genres").As("mg"),
-        goqu.On(goqu.I("movies.id").Eq(goqu.I("mg.movie_id"))),
-    ).
-    LeftJoin(
-        goqu.T("genres").As("g"),
-        goqu.On(goqu.I("mg.genre_id").Eq(goqu.I("g.id"))),
-    ).
-	Where(
-		goqu.Ex{
-			"movies.hot": 1,
-			"mi.is_thumbnail": 1,
-		},
-	).
+	// Subquery cho genre_name
+	genreSubquery := config.DB.From(goqu.T("genres").As("g")).
+		Join(goqu.T("movie_genres").As("mg"), goqu.On(goqu.I("g.id").Eq(goqu.I("mg.genre_id")))).
+		Where(goqu.I("mg.movie_id").Eq(goqu.I("m.id"))).
+		Select(goqu.I("g.name")).
+		Limit(1)
+		// Subquery cho poster
+	thumbSubquery := config.DB.From(goqu.T("movie_images").As("mi")).
+		Where(
+			goqu.I("mi.movie_id").Eq(goqu.I("m.id")),
+			goqu.I("mi.is_thumbnail").Eq(1),
+		).
+		Select(goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image"))).
+		Limit(1)
+	err := config.DB.From(goqu.T("movies").As("m")).
+	Where(goqu.I("m.hot").Eq(1)).
 	Select(
-		goqu.I("movies.id"),
-		goqu.I("movies.name"),
-		goqu.I("movies.origin_name"),
-		goqu.I("movies.slug"),
-		goqu.I("movies.type"),
-		goqu.I("movies.release_date"),
-		goqu.I("movies.rating"),
-		goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image")).As("thumb"),
-		goqu.I("g.name").As("genre_name"),
+		goqu.I("m.id"),
+		goqu.I("m.name"),
+		goqu.I("m.origin_name"),
+		goqu.I("m.slug"),
+		goqu.I("m.type"),
+		goqu.I("m.release_date"),
+		goqu.I("m.rating"),
+		genreSubquery.As("genre_name"),
+		thumbSubquery.As("thumb"),
 	).
-	GroupBy("movies.id").
 	Limit(10)
 	var hot []MovieRaw
 	if err := err.ScanStructs(&hot); err != nil {
@@ -95,45 +88,35 @@ func GetAllMovie(page, pageSize int) (entities.PaginatedMovies, error) {
 	var listMovie []entities.Movie
 	var movie []MovieRaw
 	var totalPages int64
-	ds := config.DB.From("movies").
-	LeftJoin(
-		goqu.T("movie_images").As("mi"),
-		goqu.On(
-			goqu.I("movies.id").Eq(goqu.I("mi.movie_id")),
-		),
-	).
-	LeftJoin(
-        goqu.T("movie_genres").As("mg"),
-        goqu.On(
-            goqu.I("movies.id").Eq(goqu.I("mg.movie_id")),
-        ),
-    ).
-    LeftJoin(
-        goqu.T("genres").As("g"),
-        goqu.On(
-            goqu.I("mg.genre_id").Eq(goqu.I("g.id")),
-        ),
-    ).
-	Where(
-		goqu.Ex{
-			"movies.hot": 0,
-			"mi.is_thumbnail": 0,
-		},
-	).
-	Select(
-		goqu.I("movies.name"),
-		goqu.I("movies.origin_name"),
-		goqu.I("movies.slug"),
-		goqu.I("movies.type"),
-		goqu.I("movies.release_date"),
-		goqu.I("movies.rating"),
-		goqu.I("g.name").As("genre_name"),
-		goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image")).As("poster"),
-	).
-	GroupBy("movies.id").
-	Order(goqu.I("movies.updated_at").Desc())
+	// Subquery cho genre_name
+	genreSubquery := config.DB.From(goqu.T("genres").As("g")).
+		Join(goqu.T("movie_genres").As("mg"), goqu.On(goqu.I("g.id").Eq(goqu.I("mg.genre_id")))).
+		Where(goqu.I("mg.movie_id").Eq(goqu.I("m.id"))).
+		Select(goqu.I("g.name")).
+		Limit(1)
 
-	if err := ds.Limit(uint(pageSize)).Offset(uint((page - 1) * pageSize)).ScanStructs(&movie); err != nil {
+	// Subquery cho poster
+	posterSubquery := config.DB.From(goqu.T("movie_images").As("mi")).
+		Where(
+			goqu.I("mi.movie_id").Eq(goqu.I("m.id")),
+			goqu.I("mi.is_thumbnail").Eq(0),
+		).
+		Select(goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image"))).
+		Limit(1)
+	ds := config.DB.From(goqu.T("movies").As("m")).
+		Where(goqu.I("m.hot").Eq(0)).
+		Select(
+			goqu.I("m.name"),
+			goqu.I("m.origin_name"),
+			goqu.I("m.slug"),
+			goqu.I("m.type"),
+			goqu.I("m.release_date"),
+			goqu.I("m.rating"),
+			genreSubquery.As("genre_name"),
+			posterSubquery.As("poster"),
+		).
+		Order(goqu.I("m.updated_at").Desc()).Limit(uint(pageSize)).Offset(uint((page - 1) * pageSize))
+	if err := ds.ScanStructs(&movie); err != nil {
 		return entities.PaginatedMovies{}, nil
 	}
 	
