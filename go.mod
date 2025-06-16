@@ -1,6 +1,6 @@
-module github.com/dangLuan01/restapi_go
+module github.com/dangLuan01/api_go_movie28
 
-go 1.24.1
+go 1.24.4
 
 require (
 	github.com/doug-martin/goqu/v9 v9.19.0

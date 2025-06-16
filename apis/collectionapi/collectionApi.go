@@ -3,8 +3,8 @@ package collectionapi
 import (
 	"net/http"
 	"strconv"
-	"github.com/dangLuan01/restapi_go/models"
-	"github.com/dangLuan01/restapi_go/apis/utilapi"
+	"github.com/dangLuan01/api_go_movie28/models"
+	"github.com/dangLuan01/api_go_movie28/apis/utilapi"
 	"github.com/gorilla/mux"
 )
 func GetColletion(respone http.ResponseWriter, request *http.Request)  {

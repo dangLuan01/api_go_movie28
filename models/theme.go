@@ -7,8 +7,8 @@ import (
     "log"
 	"sync"
 	//"time"
-	"github.com/dangLuan01/restapi_go/config"
-	"github.com/dangLuan01/restapi_go/entities"
+	"github.com/dangLuan01/api_go_movie28/config"
+	"github.com/dangLuan01/api_go_movie28/entities"
 	"github.com/doug-martin/goqu/v9"
 )
 

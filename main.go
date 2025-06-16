@@ -2,8 +2,8 @@ package main
 
 import (
 	"net/http"
-	"github.com/dangLuan01/restapi_go/config"
-	"github.com/dangLuan01/restapi_go/router"
+	"github.com/dangLuan01/api_go_movie28/config"
+	"github.com/dangLuan01/api_go_movie28/router"
 )
 func main()  {
 	config.InitDB()

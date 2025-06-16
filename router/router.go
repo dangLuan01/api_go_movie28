@@ -1,10 +1,10 @@
 package router
 
 import (
-	"github.com/dangLuan01/restapi_go/apis/collectionapi"
-	"github.com/dangLuan01/restapi_go/apis/genreapi"
-	"github.com/dangLuan01/restapi_go/apis/movieapi"
-	"github.com/dangLuan01/restapi_go/apis/themeapi"
+	"github.com/dangLuan01/api_go_movie28/apis/collectionapi"
+	"github.com/dangLuan01/api_go_movie28/apis/genreapi"
+	"github.com/dangLuan01/api_go_movie28/apis/movieapi"
+	"github.com/dangLuan01/api_go_movie28/apis/themeapi"
 	"github.com/gorilla/mux"
 )
 func SetupRouter() *mux.Router{
