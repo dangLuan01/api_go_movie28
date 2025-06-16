@@ -2,13 +2,11 @@ package models
 
 import (
 	//"encoding/json"
-	"fmt"
-	
+	"fmt"	
 	"math"
     "log"
 	"sync"
-	"time"
-
+	//"time"
 	"github.com/dangLuan01/restapi_go/config"
 	"github.com/dangLuan01/restapi_go/entities"
 	"github.com/doug-martin/goqu/v9"
@@ -73,6 +71,7 @@ func buildMovieQueryFromTheme(theme entities.ThemeInfo) *goqu.SelectDataset {
     query = query.Order(goqu.I("m.updated_at").Desc())
     return query
 }
+
 func GetMoviesByTheme(theme entities.ThemeInfo, page, limit int) (entities.PaginatedMovies, error) {
     // if page < 1 { page = 1 }
     // if limit < 1 { limit = 10 }
@@ -156,12 +155,14 @@ func convertMovieRawToMovie(raw entities.MovieRaw) entities.Movie {
     
 //     return results, nil
 // }
+
+// ## Run concurrency ##
 func GetAllThemesWithMovies(id, pageTheme, pageMovie, limit int) (entities.PagiateTheme, error) {
     if pageTheme < 1 {
         pageTheme = 1
     }
     if limit < 1 {
-        limit = 4
+        limit = 2
     }
     offset := (pageTheme - 1) * limit
 
@@ -184,7 +185,7 @@ func GetAllThemesWithMovies(id, pageTheme, pageMovie, limit int) (entities.Pagia
     }
 
     // Kênh để thu thập kết quả và lỗi
-    type resultStruct struct { // Đổi tên để tránh nhầm lẫn với biến result
+    type resultStruct struct {
         index           int
         themeWithMovies entities.ThemeWithMovies
         err             error
@@ -193,14 +194,17 @@ func GetAllThemesWithMovies(id, pageTheme, pageMovie, limit int) (entities.Pagia
     var wg sync.WaitGroup
 
     // Chạy goroutines cho mỗi theme
-    start := time.Now()
+    // start := time.Now()
     for i, theme := range themes {
         wg.Add(1)
         go func(idx int, t entities.ThemeInfo) {
             defer wg.Done()
             movies, err := GetMoviesByTheme(t, pageMovie, t.Limit)
             if err != nil {
-                resultsChan <- resultStruct{index: idx, err: fmt.Errorf("failed to get movies for theme %s: %v", t.Name, err)}
+                resultsChan <- resultStruct{
+                    index: idx, 
+                    err: fmt.Errorf("failed to get movies for theme %s: %v", t.Name, err),
+                }
                 return
             }
             resultsChan <- resultStruct{
@@ -230,8 +234,8 @@ func GetAllThemesWithMovies(id, pageTheme, pageMovie, limit int) (entities.Pagia
         resultSlice[res.index] = res.themeWithMovies
     }
 
-    // Ghi log thời gian
-    log.Printf("GetAllThemesWithMovies took %v for %d themes", time.Since(start), len(themes))
+    // // Ghi log thời gian
+    // log.Printf("GetAllThemesWithMovies took %v for %d themes", time.Since(start), len(themes))
 
     // Kiểm tra lỗi
     if len(errors) > 0 {
