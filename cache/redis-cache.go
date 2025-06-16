@@ -5,59 +5,63 @@ import (
 	"encoding/json"
 	"log"
 	"time"
-	"github.com/dangLuan01/api_go_movie28/entities"
 	"github.com/redis/go-redis/v9"
 )
 
 var ctx = context.Background()
 
 type redisCache struct {
-	host    string
-	db      int
-	expires time.Duration
-}
-func NewRedisCache(host string, db int, exp time.Duration) MovieCache {
-	return &redisCache{
-		host: 		host,
-		db: 		db,
-		expires: 	exp,
-	}
+	client    *redis.Client
+	expires   time.Duration
+	available bool
 }
 
-func (cache *redisCache) getClient() *redis.Client  {
-	return redis.NewClient(&redis.Options{
-		Addr: 		cache.host,
-		Password: 	"",
-		DB: 		cache.db,
+func NewRedisCache(host string, db int, exp time.Duration) DataCache {
+	client := redis.NewClient(&redis.Options{
+		Addr:     host,
+		Password: "",
+		DB:       db,
 	})
-}
-
-func (cache *redisCache) Set(key string, value *entities.Movie){
-	
-	client 		:= cache.getClient()
-	json, err 	:= json.Marshal(value)
-	if err != nil {
-		log.Printf("Error json:%v", err)
-		return
+	available := true
+	if _, err := client.Ping(ctx).Result(); err != nil {
+		log.Printf("⚠️ Redis không khả dụng: %v", err)
+		available = false
+		return nil
 	}
-	error := client.Set(ctx, key, json, cache.expires*time.Second).Err()
-	if error != nil {
-		log.Printf("Error Set cache:%v", error)
-		return
+
+	return &redisCache{
+		client:    client,
+		expires:   exp,
+		available: available,
 	}
 }
 
-func (cache *redisCache) Get(key string) *entities.Movie{
-	client 		:= cache.getClient()
-	val, err 	:= client.Get(ctx, key).Result()
-	if err != nil {
-		return nil
+func (cache *redisCache) Set(key string, value any) {
+	if !cache.available {
+		return
 	}
-	movie := entities.Movie{}
-	err = json.Unmarshal([]byte(val), &movie)
+	data, err := json.Marshal(value)
 	if err != nil {
-		log.Printf("Error get json cache:%v", err)
-		return nil
+		log.Printf("❌ Error marshaling JSON: %v", err)
+		return
 	}
-	return &movie
+	err = cache.client.Set(ctx, key, data, cache.expires*time.Second).Err()
+	if err != nil {
+		log.Printf("❌ Error setting cache: %v", err)
+	}
+}
+func (cache *redisCache) Get(key string, dest any) bool {
+	if !cache.available {
+		return false
+	}
+	val, err := cache.client.Get(ctx, key).Result()
+	if err != nil {
+		return false
+	}
+	//var movie entities.Movie
+	if err := json.Unmarshal([]byte(val), dest); err != nil {
+		log.Printf("❌ Error unmarshaling JSON: %v", err)
+		return false
+	}
+	return true
 }

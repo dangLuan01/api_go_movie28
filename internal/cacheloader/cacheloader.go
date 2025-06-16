@@ -1,17 +1,20 @@
 package cacheloader
 
 import (
+	"os"
 	"sync"
+	"time"
 	"github.com/dangLuan01/api_go_movie28/cache"
 )
 
 var (
 	once        sync.Once
-	movieCache  cache.MovieCache
+	dataCache  cache.DataCache
 )
-func GetMovieCache() cache.MovieCache {
+func GetCache(db int, exp time.Duration) cache.DataCache {
+	host 	:= os.Getenv("REDIS_HOST")
 	once.Do(func() {
-		movieCache = cache.NewRedisCache("localhost:6379", 0, 300) // TTL = 300 giây
+		dataCache = cache.NewRedisCache(host, db, exp*time.Second)
 	})
-	return movieCache
+	return dataCache
 }

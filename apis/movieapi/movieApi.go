@@ -1,6 +1,7 @@
 package movieapi
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -27,6 +28,7 @@ func GetAllMovie(respone http.ResponseWriter, request *http.Request)  {
 	pageGet 	:= query.Get("page")
 	pageSizeGet := query.Get("page_size")
 	page, err 	:= strconv.Atoi(pageGet)
+	found 		:= false
 	if err != nil || page < 1 {
 		page = 1
 	}
@@ -34,26 +36,52 @@ func GetAllMovie(respone http.ResponseWriter, request *http.Request)  {
 	if err != nil || pageSize < 1 {
 		pageSize = 10
 	}
-	movie, err := models.GetAllMovie(page, pageSize)
-	if err != nil {
-		utilapi.ResponseWithJson(respone, http.StatusOK, err)
+	var data entities.PaginatedMovies
+	key := fmt.Sprintf("movies:page=%s:size=%s", pageGet, pageSizeGet)
+	movieCache := cacheloader.GetCache(0,300)
+	if movieCache != nil && movieCache.Get(key, &data) {
+		log.Println("Read from redis")
+		utilapi.ResponseWithJson(respone, http.StatusOK, data)
+		return
 	}
-	utilapi.ResponseWithJson(respone, http.StatusOK, movie)
-}
-func GetMovieBySlug(respone http.ResponseWriter, request *http.Request)  {
-	movieCache 	:= cacheloader.GetMovieCache()
-	slug 		:= mux.Vars(request)["slug"]
-	var movie *entities.Movie = movieCache.Get(slug)
-	if movie == nil {
-		movie, err := models.GetDetailMovie(slug)
+	if !found {
+		movie, err := models.GetAllMovie(page, pageSize)	
 		if err != nil {
-			log.Printf("Err:%v", err)
-			utilapi.ResponseWithJson(respone, http.StatusOK, err)
+			utilapi.ResponseWithJson(respone, http.StatusOK, map[string]string{
+				"error": "Không lấy được dữ liệu",
+			})
 		}
-		movieCache.Set(slug, &movie)
-		utilapi.ResponseWithJson(respone, http.StatusOK, movie)
-	}else {
-		utilapi.ResponseWithJson(respone, http.StatusOK, movie)
+		data = movie
+		if movieCache != nil {
+			movieCache.Set(key, data)
+		}
 	}
-	
+	utilapi.ResponseWithJson(respone, http.StatusOK, data)
 }
+func GetMovieBySlug(response http.ResponseWriter, request *http.Request) {
+	slug 		:= mux.Vars(request)["slug"]
+	movieCache 	:= cacheloader.GetCache(0, 300)
+	found 		:= false
+	var movie entities.Movie
+	if movieCache != nil {
+		log.Println("Read from redis")
+		found = movieCache.Get(slug, &movie)
+	}
+	if !found {
+		dbMovie, err := models.GetDetailMovie(slug)
+		if err != nil {
+			log.Printf("❌ DB error: %v", err)
+			utilapi.ResponseWithJson(response, http.StatusInternalServerError, map[string]string{
+				"error": "Không tìm thấy phim",
+			})
+			return
+		}
+		movie = dbMovie
+		if movieCache != nil {
+			movieCache.Set(slug, movie)
+		}
+	}
+
+	utilapi.ResponseWithJson(response, http.StatusOK, movie)
+}
+

@@ -220,28 +220,29 @@ func GetAllMovie(page, pageSize int) (entities.PaginatedMovies, error) {
 func GetDetailMovie(slug string) (entities.Movie, error) {
 	var row MovieRaw
 	var genres []entities.Genre
+	thumbSubquery := config.DB.From(goqu.T("movie_images").As("mi")).
+		Where(
+			goqu.I("mi.movie_id").Eq(goqu.I("m.id")),
+			goqu.I("mi.is_thumbnail").Eq(1),
+		).
+		Select(goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image"))).
+		Limit(1)
 	ds := config.DB.Select(
-		"movies.id",
-		"movies.name",
-		"movies.origin_name",
-		"movies.slug",
-		"movies.type",
-		"movies.release_date",
-		"movies.rating",
-		goqu.Func("IFNULL", goqu.I("movies.content"), "").As("content"),
-		goqu.Func("IFNULL", goqu.I("movies.runtime"), "").As("runtime"),
-		goqu.Func("IFNULL", goqu.I("movies.age"), "").As("age"),
-		goqu.Func("IFNULL", goqu.I("movies.trailer"), "").As("trailer"),
-		//"movies.trailer",
-		goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image")).As("thumb"),
+		"m.id",
+		"m.name",
+		"m.origin_name",
+		"m.slug",
+		"m.type",
+		"m.release_date",
+		"m.rating",
+		goqu.Func("IFNULL", goqu.I("m.content"), "").As("content"),
+		goqu.Func("IFNULL", goqu.I("m.runtime"), "").As("runtime"),
+		goqu.Func("IFNULL", goqu.I("m.age"), "").As("age"),
+		goqu.Func("IFNULL", goqu.I("m.trailer"), "").As("trailer"),
+		thumbSubquery.As("thumb"),
 	
-	).From("movies").
-	LeftJoin(
-		goqu.T("movie_images").As("mi"),
-		goqu.On(
-			goqu.I("movies.id").Eq(goqu.I("mi.movie_id")),
-		),
-	).Where(goqu.Ex{"slug": slug,"mi.is_thumbnail": 1})
+	).From(goqu.T("movies").As("m")).
+	Where(goqu.Ex{"slug": slug})
 	_, err := ds.ScanStruct(&row)
 
 	err2 := config.DB.
