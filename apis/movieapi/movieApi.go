@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-
 	"github.com/dangLuan01/api_go_movie28/apis/utilapi"
 	"github.com/dangLuan01/api_go_movie28/entities"
 	"github.com/dangLuan01/api_go_movie28/internal/cacheloader"

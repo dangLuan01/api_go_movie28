@@ -1,20 +1,24 @@
 package themeapi
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/dangLuan01/api_go_movie28/apis/utilapi"
+	"github.com/dangLuan01/api_go_movie28/entities"
+	"github.com/dangLuan01/api_go_movie28/internal/cacheloader"
 	"github.com/dangLuan01/api_go_movie28/models"
 )
-func GetThemes(respone http.ResponseWriter, request *http.Request)  {
-	query := request.URL.Query()
-	idGet := query.Get("id")
-	pageThemeGet := query.Get("page_theme")
-	pageMovieGet := query.Get("page_movie")
-	pageSizeGet := query.Get("page_size")
-
-	id, _ := strconv.Atoi(idGet)
+func GetThemes(respone http.ResponseWriter, request *http.Request) {
+	query 			:= request.URL.Query()
+	idGet 			:= query.Get("id")
+	pageThemeGet 	:= query.Get("page_theme")
+	pageMovieGet 	:= query.Get("page_movie")
+	pageSizeGet 	:= query.Get("page_size")
+	found 			:= false
+	id, _ 			:= strconv.Atoi(idGet)
 
 	pageTheme, err := strconv.Atoi(pageThemeGet)
 	if err != nil || pageTheme < 1 {
@@ -28,9 +32,24 @@ func GetThemes(respone http.ResponseWriter, request *http.Request)  {
 	if err != nil || pageSize < 1 {
 		pageSize = 4
 	}
-	theme, err := models.GetAllThemesWithMovies(id, pageTheme, pageMovie, pageSize)
-	if err != nil {
-		utilapi.ResponseWithJson(respone, http.StatusOK, err)	
+	var data entities.PagiateTheme
+	key 		:= fmt.Sprintf("themes:page=%s:size=%s", pageThemeGet, pageSizeGet)
+	themeCache 	:= cacheloader.GetCache(0,300)
+	if themeCache != nil && themeCache.Get(key, &data) {
+		found = true
+		log.Println("Read from redis")
+		utilapi.ResponseWithJson(respone, http.StatusOK, data)
+		return
 	}
-	utilapi.ResponseWithJson(respone, http.StatusOK, theme)
+	if !found {
+		themes, err := models.GetAllThemesWithMovies(id, pageTheme, pageMovie, pageSize)
+		if err != nil {
+			utilapi.ResponseWithJson(respone, http.StatusOK, err)	
+		}
+		data = themes
+		if themeCache != nil {
+			themeCache.Set(key, data)	
+		}
+	}
+	utilapi.ResponseWithJson(respone, http.StatusOK, data)
 }
