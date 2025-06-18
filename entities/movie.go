@@ -96,8 +96,12 @@ type ThemeWithMovies struct {
 	PaginatedMovies 	PaginatedMovies `json:"data"`
 }
 type PagiateTheme struct {
-	ThemeWithMovies []ThemeWithMovies `json:"datas"`
-	Page       		int     	`json:"page,omitempty"`
-	PageSize   		int     	`json:"page_size,omitempty"`
-	TotalPages 		int			`json:"total_pages,omitempty"`
+	ThemeWithMovies []ThemeWithMovies 	`json:"datas"`
+	Page       		int     			`json:"page,omitempty"`
+	PageSize   		int     			`json:"page_size,omitempty"`
+	TotalPages 		int					`json:"total_pages,omitempty"`
+}
+type MovieDetail struct {
+	Movie	Movie 	`json:"movie"`
+	Related []Movie `json:"related"`
 }

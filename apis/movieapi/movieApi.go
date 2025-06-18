@@ -61,7 +61,7 @@ func GetMovieBySlug(response http.ResponseWriter, request *http.Request) {
 	slug 		:= mux.Vars(request)["slug"]
 	movieCache 	:= cacheloader.GetCache(0, 300)
 	found 		:= false
-	var movie entities.Movie
+	var movie entities.MovieDetail
 	if movieCache != nil {
 		log.Println("Read from redis")
 		found = movieCache.Get(slug, &movie)

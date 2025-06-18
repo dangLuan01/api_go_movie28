@@ -3,6 +3,8 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+
 	"github.com/dangLuan01/api_go_movie28/config"
 	"github.com/dangLuan01/api_go_movie28/entities"
 	"github.com/doug-martin/goqu/v9"
@@ -217,7 +219,7 @@ func GetAllMovie(page, pageSize int) (entities.PaginatedMovies, error) {
 // 	}, nil
 // }
 
-func GetDetailMovie(slug string) (entities.Movie, error) {
+func GetDetailMovie(slug string) (entities.MovieDetail, error) {
 	var row MovieRaw
 	var genres []entities.Genre
 	thumbSubquery := config.DB.From(goqu.T("movie_images").As("mi")).
@@ -256,33 +258,43 @@ func GetDetailMovie(slug string) (entities.Movie, error) {
 	ScanStructs(&genres)
 
 	if err != nil {
-		fmt.Println(err)
-		return entities.Movie{}, err
+		log.Printf("Error query:%v", err)
+		return entities.MovieDetail{}, err
 	}
 
-	movie := entities.Movie{
-		Name: row.Name,
-		Origin_name: row.Origin_name,
-		Slug: row.Slug,
-		Type: row.Type,
-		Release_date: row.Release_date,
-		Rating: ConvertRating(float32(row.Rating)),
-		Content: row.Content,
-		Runtime: row.Runtime,
-		Age: row.Age,
-		Trailer: row.Trailer,
-		Image: entities.Image{
-			Thumb: row.Thumb,
+	movie := entities.MovieDetail{
+		Movie: entities.Movie{
+			Name: row.Name,
+			Origin_name: row.Origin_name,
+			Slug: row.Slug,
+			Type: row.Type,
+			Release_date: row.Release_date,
+			Rating: ConvertRating(float32(row.Rating)),
+			Content: row.Content,
+			Runtime: row.Runtime,
+			Age: row.Age,
+			Trailer: row.Trailer,
+			Image: entities.Image{
+				Thumb: row.Thumb,
+			},
 		},
 	}
 	if err2 == nil {
-		movie.Genres = genres
+		movie.Movie.Genres = genres
 	}
 	server, err := GetServerWithEpisodes(row.Id)
 	if err != nil {
+		log.Printf("Server error:%v", err)
 		server = []entities.Server{}
 	}
-	movie.Servers = server
+	movie.Movie.Servers = server
+	relate, err := GetMovieRelate(row.Id, row.Name, row.Origin_name)
+	if err != nil {
+		log.Printf("Relate error:%v", err)
+		relate = []entities.Movie{}
+	}
+	movie.Related = relate
+	
 	return movie, nil
 }
 // func GetServerWithEpisodes(movieId int) ([]entities.Server, error) {
@@ -372,4 +384,77 @@ func GetServerWithEpisodes(movieId int) ([]entities.Server, error) {
     }
 
     return result, nil
+}
+func GetMovieRelate(movieId int, name, origin_name string) ([]entities.Movie, error) {
+	var relatedMovies []MovieRaw
+	var listRelateMovie []entities.Movie
+	genreSubquery := config.DB.From(goqu.T("genres").As("g")).
+		Join(goqu.T("movie_genres").As("mg"), goqu.On(goqu.I("g.id").Eq(goqu.I("mg.genre_id")))).
+		Where(goqu.I("mg.movie_id").Eq(goqu.I("m.id"))).
+		Select(goqu.I("g.name")).
+		Limit(1)
+		// Subquery cho poster
+	posterSubquery := config.DB.From(goqu.T("movie_images").As("mi")).
+		Where(
+			goqu.I("mi.movie_id").Eq(goqu.I("m.id")),
+			goqu.I("mi.is_thumbnail").Eq(0),
+		).
+		Select(goqu.Func("CONCAT", goqu.I("mi.path"), goqu.I("mi.image"))).
+		Limit(1)	
+	found := config.DB.From(goqu.T("movies").As("m")).
+				Where(
+					goqu.C("id").Neq(movieId),
+				).Where(goqu.Or(
+					goqu.C("name").Like("%" + name + "%"),
+					goqu.C("origin_name").Like("%" + origin_name + "%"),
+				)).
+				Select(
+					goqu.I("m.name"),
+					goqu.I("m.origin_name"),
+					goqu.I("m.slug"),
+					goqu.I("m.type"),
+					goqu.I("m.release_date"),
+					goqu.I("m.rating"),
+					genreSubquery.As("genre_name"),
+					posterSubquery.As("poster"),
+				).Limit(4)
+	
+	err := found.ScanStructs(&relatedMovies)
+	if err != nil || len(relatedMovies) == 0 {
+		
+		err = config.DB.From(goqu.T("movies").As("m")).
+			Where(goqu.C("id").Neq(movieId)).
+			Order(goqu.I("m.updated_at").Desc()).
+			Select(
+				goqu.I("m.name"),
+				goqu.I("m.origin_name"),
+				goqu.I("m.slug"),
+				goqu.I("m.type"),
+				goqu.I("m.release_date"),
+				goqu.I("m.rating"),
+				genreSubquery.As("genre_name"),
+				posterSubquery.As("poster"),
+				).
+			Limit(4).
+			ScanStructs(&relatedMovies)
+	}
+	for _, item := range relatedMovies {
+		listRelateMovie = append(listRelateMovie, entities.Movie{
+			Name: item.Name,
+			Origin_name: item.Origin_name,
+			Slug: item.Slug,
+			Type: item.Type,
+			Release_date: item.Release_date,
+			Rating: ConvertRating(float32(item.Rating)),
+			Image: entities.Image{
+				Poster: item.Poster,
+			},
+			Genres: []entities.Genre{
+				{
+					Name: item.Genre_name,
+				},
+			},
+		})
+	}
+	return listRelateMovie, nil			
 }
