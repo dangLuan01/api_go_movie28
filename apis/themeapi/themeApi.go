@@ -3,8 +3,10 @@ package themeapi
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/dangLuan01/api_go_movie28/apis/utilapi"
 	"github.com/dangLuan01/api_go_movie28/entities"
@@ -19,7 +21,7 @@ func GetThemes(respone http.ResponseWriter, request *http.Request) {
 	pageSizeGet 	:= query.Get("page_size")
 	found 			:= false
 	id, _ 			:= strconv.Atoi(idGet)
-
+	var data entities.PagiateTheme
 	pageTheme, err := strconv.Atoi(pageThemeGet)
 	if err != nil || pageTheme < 1 {
 		pageTheme = 1
@@ -32,9 +34,9 @@ func GetThemes(respone http.ResponseWriter, request *http.Request) {
 	if err != nil || pageSize < 1 {
 		pageSize = 4
 	}
-	var data entities.PagiateTheme
 	key 		:= fmt.Sprintf("themes:page=%s:size=%s", pageThemeGet, pageSizeGet)
-	themeCache 	:= cacheloader.GetCache(0,300)
+	time 		:=  time.Duration(rand.Intn(500-400) + 400)
+	themeCache 	:= cacheloader.GetCache(0, time)
 	if themeCache != nil && themeCache.Get(key, &data) {
 		found = true
 		log.Println("Read from redis")
