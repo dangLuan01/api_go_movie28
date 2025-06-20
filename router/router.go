@@ -4,6 +4,7 @@ import (
 	"github.com/dangLuan01/api_go_movie28/apis/collectionapi"
 	"github.com/dangLuan01/api_go_movie28/apis/genreapi"
 	"github.com/dangLuan01/api_go_movie28/apis/movieapi"
+	"github.com/dangLuan01/api_go_movie28/apis/searchapi"
 	"github.com/dangLuan01/api_go_movie28/apis/themeapi"
 	"github.com/gorilla/mux"
 )
@@ -20,6 +21,7 @@ func SetupRouter() *mux.Router{
 	router.HandleFunc("/api/v1/collection", collectionapi.GetColletion).Methods("GET")
 	router.HandleFunc("/api/v1/collection/{slug}", collectionapi.GetColletionBySlug).Methods("GET")
 	router.HandleFunc("/api/v1/themes", themeapi.GetThemes).Methods("GET")
+	router.HandleFunc("/api/v1/_search", searchapi.SearchES).Methods("GET")
 
 	return router
 }

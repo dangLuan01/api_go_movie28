@@ -18,8 +18,25 @@ func GetCategory(respone http.ResponseWriter, request *http.Request)  {
 }
 
 func GetMovieHot(respone http.ResponseWriter, request *http.Request) {
-	movie := models.GetAllMovieHot()
-	utilapi.ResponseWithJson(respone, http.StatusOK, movie)
+	key 		:= "movie-hot"
+	found 		:= false
+	movieCache 	:= cacheloader.GetCache(0,500)
+	var data []entities.Movie
+	if movieCache != nil && movieCache.Get(key, &data) {
+		log.Println("Read from cache")
+		utilapi.ResponseWithJson(respone, http.StatusOK, data)
+		found = true
+		return
+	}
+	if !found {
+		movie := models.GetAllMovieHot()	
+		data = movie
+		if movieCache != nil {
+			movieCache.Set(key, data)
+		}
+		log.Println("Read from db")
+		utilapi.ResponseWithJson(respone, http.StatusOK, data)
+	}
 }
 
 func GetAllMovie(respone http.ResponseWriter, request *http.Request)  {

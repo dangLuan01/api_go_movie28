@@ -105,3 +105,6 @@ type MovieDetail struct {
 	Movie	Movie 	`json:"movie"`
 	Related []Movie `json:"related"`
 }
+type SearchResult struct {
+	Movies 	[]Movie 	`json:"movies"`
+}
