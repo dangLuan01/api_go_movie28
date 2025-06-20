@@ -64,7 +64,15 @@ func Search(search string) (entities.SearchResult, error) {
 		if source, ok := hitMap["_source"].(map[string]interface{}); ok {
 			movie = append(movie, entities.Movie{
 				Name: source["name"].(string),
+				Origin_name: source["origin_name"].(string),
 				Slug: source["slug"].(string),
+				Image: entities.Image{
+					Poster: source["poster"].(string),
+				},	
+				Type: source["type"].(string),
+				Age: source["age"].(string),
+				Release_date: int(source["release_date"].(float64)),
+				Runtime: source["runtime"].(string),
 			})
 		}
 	}

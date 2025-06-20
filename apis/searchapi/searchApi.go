@@ -18,3 +18,7 @@ func SearchES(response http.ResponseWriter, request *http.Request) {
 	}
 	utilapi.ResponseWithJson(response, http.StatusOK, es)
 }
+func Syn(response http.ResponseWriter, request *http.Request) {
+	syn := models.SynES()
+	utilapi.ResponseWithJson(response, http.StatusOK, syn)
+}

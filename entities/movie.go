@@ -11,9 +11,9 @@ type Movie struct {
 	Slug   			string 		`json:"slug"`
 	Type  			string 		`json:"type"`
 	Release_date   	int    		`json:"release_date"`
-	Rating			float32 	`json:"rating"`
+	Rating			float32 	`json:"rating,omitempty"`
 	Content 		string 		`json:"content,omitempty"`
-	Runtime 		string    	`json:"runtime,omitempty"`
+	Runtime 		string    	`json:"runtime"`
 	Age 			string 		`json:"age,omitempty"`
 	Trailer 		string 		`json:"trailer,omitempty"`
 	//ImageRaw  		string   	`db:"image_raw" json:"-"`

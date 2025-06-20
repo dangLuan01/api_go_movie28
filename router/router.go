@@ -22,6 +22,7 @@ func SetupRouter() *mux.Router{
 	router.HandleFunc("/api/v1/collection/{slug}", collectionapi.GetColletionBySlug).Methods("GET")
 	router.HandleFunc("/api/v1/themes", themeapi.GetThemes).Methods("GET")
 	router.HandleFunc("/api/v1/_search", searchapi.SearchES).Methods("GET")
+	//router.HandleFunc("/api/v1/syn", searchapi.Syn).Methods("GET")
 
 	return router
 }
