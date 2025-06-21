@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"math/rand"
 	"time"
+
 	"github.com/redis/go-redis/v9"
 )
 
@@ -45,7 +47,8 @@ func (cache *redisCache) Set(key string, value any) {
 		log.Printf("❌ Error marshaling JSON: %v", err)
 		return
 	}
-	err = cache.client.Set(ctx, key, data, cache.expires*time.Second).Err()
+	timeExp := time.Duration(rand.Intn(50) + 250) * time.Second
+	err = cache.client.Set(ctx, key, data, timeExp).Err()
 	if err != nil {
 		log.Printf("❌ Error setting cache: %v", err)
 	}

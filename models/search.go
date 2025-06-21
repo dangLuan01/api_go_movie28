@@ -12,7 +12,7 @@ import (
 var (
 	r map[string]interface{}
 	index = os.Getenv("ES_INDEX")
-	
+	releaseDate int
 )
 func Search(search string) (entities.SearchResult, error) {
 	movie := []entities.Movie{}
@@ -30,7 +30,7 @@ func Search(search string) (entities.SearchResult, error) {
 				"fuzziness": "AUTO",
 			},
 		},
-		"size": 17,
+		"size": 50,
 		"from": 0,
 	}
 	if err := json.NewEncoder(&buf).Encode(query); err != nil {
