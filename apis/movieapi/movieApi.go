@@ -23,7 +23,7 @@ func GetMovieHot(respone http.ResponseWriter, request *http.Request) {
 	movieCache 	:= cacheloader.GetCache(0, 300)
 	var data []entities.Movie
 	if movieCache != nil && movieCache.Get(key, &data) {
-		log.Println("Read from cache")
+		log.Println("Movie hot Read from redis")
 		utilapi.ResponseWithJson(respone, http.StatusOK, data)
 		found = true
 		return
@@ -34,7 +34,7 @@ func GetMovieHot(respone http.ResponseWriter, request *http.Request) {
 		if movieCache != nil {
 			movieCache.Set(key, data)
 		}
-		log.Println("Read from db")
+		log.Println("Movie hot Read from db")
 		utilapi.ResponseWithJson(respone, http.StatusOK, data)
 	}
 }
@@ -56,7 +56,7 @@ func GetAllMovie(respone http.ResponseWriter, request *http.Request)  {
 	key := fmt.Sprintf("movies:page=%s:size=%s", pageGet, pageSizeGet)
 	movieCache := cacheloader.GetCache(0, 300)
 	if movieCache != nil && movieCache.Get(key, &data) {
-		log.Println("Read from redis")
+		log.Println("Read movies from redis")
 		utilapi.ResponseWithJson(respone, http.StatusOK, data)
 		return
 	}
@@ -72,6 +72,7 @@ func GetAllMovie(respone http.ResponseWriter, request *http.Request)  {
 			movieCache.Set(key, data)
 		}
 	}
+	log.Println("Read movies from db")
 	utilapi.ResponseWithJson(respone, http.StatusOK, data)
 }
 func GetMovieBySlug(response http.ResponseWriter, request *http.Request) {
@@ -80,7 +81,7 @@ func GetMovieBySlug(response http.ResponseWriter, request *http.Request) {
 	found 		:= false
 	var movie entities.MovieDetail
 	if movieCache != nil {
-		log.Println("Read from redis")
+		log.Println("Read movie detail from redis")
 		found = movieCache.Get(slug, &movie)
 	}
 	if !found {

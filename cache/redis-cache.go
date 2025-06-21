@@ -47,7 +47,7 @@ func (cache *redisCache) Set(key string, value any) {
 		log.Printf("❌ Error marshaling JSON: %v", err)
 		return
 	}
-	timeExp := time.Duration(rand.Intn(50) + 250) * time.Second
+	timeExp := time.Duration(rand.Intn(200) + 300) * time.Second
 	err = cache.client.Set(ctx, key, data, timeExp).Err()
 	if err != nil {
 		log.Printf("❌ Error setting cache: %v", err)

@@ -35,7 +35,7 @@ func GetThemes(respone http.ResponseWriter, request *http.Request) {
 	themeCache 	:= cacheloader.GetCache(0, 300)
 	if themeCache != nil && themeCache.Get(key, &data) {
 		found = true
-		log.Println("Read from redis")
+		log.Println("Theme Read from redis")
 		utilapi.ResponseWithJson(respone, http.StatusOK, data)
 		return
 	}
@@ -49,5 +49,6 @@ func GetThemes(respone http.ResponseWriter, request *http.Request) {
 			themeCache.Set(key, data)	
 		}
 	}
+	log.Println("Theme Read from db")
 	utilapi.ResponseWithJson(respone, http.StatusOK, data)
 }

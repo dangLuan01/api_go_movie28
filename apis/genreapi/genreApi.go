@@ -20,7 +20,7 @@ func GetAllGenreHome(respone http.ResponseWriter, request *http.Request) {
 	found := false
 	var genre []entities.Genre
 	if genreCache != nil {
-		log.Println("Read from redis")
+		log.Println("Genre Read from redis")
 		found = genreCache.Get("genre-homepage", &genre)
 	}
 	if !found {
